@@ -144,7 +144,7 @@ class Save_Cases(object):
                 # outp = np.abs(outp[:, :, 0:mat_zp.shape[1], :, :] + 1j * outp[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
 
                 outp_net[:, :, :, zz] = outputs2[0, 0, :, :, :]
-                outp_all[:, :, :, zz] = outp[0, 0, :, :, :]
+                # outp_all[:, :, :, zz] = outp[0, 0, :, :, :]
                 input_all[:, :, :, zz] = inputs[0, 0, :, :, :]
 
                 #print( time.clock()-time_start)
@@ -159,8 +159,8 @@ class Save_Cases(object):
             io.savemat(str(self.search_path_save_ZF + filename_zp), {'input_all': input_all})
             # io.savemat(str(self.search_path_save_RC + filename_zp), {'outp_all': outp_all})
 
-        return input_all, outp_net, outp_all
+        return input_all, outp_net
 
     def __call__(self):
         input_all,outp_net,outp_all = self._save_files()
-        return input_all, outp_net, outp_all
+        return input_all, outp_net

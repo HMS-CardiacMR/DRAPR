@@ -153,20 +153,19 @@ import ProspectiveRadialSaveConcatV4
 data_images_GPU = ProspectiveRadialSaveConcatV4.Save_Cases(main_file, SubFile, normalize_window = 48, Crop_nx = 144, net2 = net, device = device2)
 input_all_GPU= data_images_GPU.data[0]
 outp_net_GPU= data_images_GPU.data[1]
-outp_all_GPU= data_images_GPU.data[2]
+# outp_all_GPU= data_images_GPU.data[2]
 
 fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=(13, 5))
 ax[0].imshow(np.abs(input_all_GPU[ :, :, 16,7]), cmap='gray', vmin=0, vmax=1.75)
 ax[1].imshow(np.abs(outp_net_GPU[ :, :, 16,7]), cmap='gray', vmin=0, vmax=1.75)
-ax[2].imshow(np.abs(outp_all_GPU[ :, :, 16,7]), cmap='gray', vmin=0, vmax=1.75)
+# ax[2].imshow(np.abs(outp_all_GPU[ :, :, 16,7]), cmap='gray', vmin=0, vmax=1.75)
 
 fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=(13, 5))
 ax[0].imshow(np.abs(input_all_GPU[ :, :, 15,5]), cmap='gray', vmin=0, vmax=1.75)
 ax[1].imshow(np.abs(outp_net_GPU[ :, :, 15,5]), cmap='gray', vmin=0, vmax=1.75)
-ax[2].imshow(np.abs(outp_all_GPU[ :, :, 15,5]), cmap='gray', vmin=0, vmax=1.75)
+# ax[2].imshow(np.abs(outp_all_GPU[ :, :, 15,5]), cmap='gray', vmin=0, vmax=1.75)
 
 fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=(13, 5))
 ax[0].imshow(np.abs(input_all_GPU[ :, :, 20,5]), cmap='gray', vmin=0, vmax=1.75)
 ax[1].imshow(np.abs(outp_net_GPU[ :, :, 20,5]), cmap='gray', vmin=0, vmax=1.75)
-ax[2].imshow(np.abs(outp_all_GPU[ :, :, 20,5]), cmap='gray', vmin=0, vmax=1.75)
-
+# ax[2].imshow(np.abs(outp_all_GPU[ :, :, 20,5]), cmap='gray', vmin=0, vmax=1.75)
