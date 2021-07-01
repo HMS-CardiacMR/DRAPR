@@ -139,7 +139,7 @@ class Net(nn.Module):
 PATH = "./models/model.py"
 net = Net()
 device2 = torch.device("cuda:5")
-net = nn.DataParallel(net, device_ids=[0])
+net = nn.DataParallel(net, device_ids=[5,6])
 net.load_state_dict(torch.load(PATH))
 net.to(device2)
 net.eval()
@@ -169,3 +169,4 @@ fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=(13, 5))
 ax[0].imshow(np.abs(input_all_GPU[ :, :, 20,5]), cmap='gray', vmin=0, vmax=1.75)
 ax[1].imshow(np.abs(outp_net_GPU[ :, :, 20,5]), cmap='gray', vmin=0, vmax=1.75)
 ax[2].imshow(np.abs(outp_all_GPU[ :, :, 20,5]), cmap='gray', vmin=0, vmax=1.75)
+
