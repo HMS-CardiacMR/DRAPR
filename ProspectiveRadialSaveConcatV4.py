@@ -25,7 +25,7 @@ class Save_Cases(object):
         # self.search_path_rc = main_file + SubFile + "/NuFFT_RC/"
         self.search_path_save_NET = main_file + SubFile + "/NuFFT_NET_saving/"
         # self.search_path_save_RC = main_file + SubFile + "/NuFFT_RC_saving/"
-        self.search_path_save_ZF = main_file + SubFile + "/NuFFT_ZF_saving/"
+        # self.search_path_save_ZF = main_file + SubFile + "/NuFFT_ZF_saving/"
         self.net2 = net2
         self.device = device
         self.normalize_window = normalize_window
@@ -48,12 +48,12 @@ class Save_Cases(object):
         # except FileExistsError:
         #     print("Directory ", self.search_path_save_RC, " already exists")
 
-        try:
-            # Create target Directory
-            os.makedirs(self.search_path_save_ZF)
-            print("Directory ", self.search_path_save_ZF, " Created ")
-        except FileExistsError:
-            print("Directory ", self.search_path_save_ZF, " already exists")
+        # try:
+        #     # Create target Directory
+        #     os.makedirs(self.search_path_save_ZF)
+        #     print("Directory ", self.search_path_save_ZF, " Created ")
+        # except FileExistsError:
+        #     print("Directory ", self.search_path_save_ZF, " already exists")
 
         # Loading gridded data files to be processed by the network
         ListofFiles_zp = os.listdir(self.search_path_zp)
@@ -94,8 +94,8 @@ class Save_Cases(object):
 
             # Create empty output arrays
             outp_net = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
-            outp_all = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
-            input_all = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
+            # outp_all = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
+            # input_all = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
 
             for zz in range(0, mat_zp.shape[4]):
 
@@ -110,7 +110,7 @@ class Save_Cases(object):
                 # mat_rc = (mat_rc2[:, startx1:endx1, starty1:endy1, :, zz])
 
                 # This variable doesn't seem to be used
-                nxx = mat_zp.shape[1]
+                # nxx = mat_zp.shape[1]
 
                 # Apply normalization?
                 nx_crop2 = self.normalize_window
@@ -123,7 +123,7 @@ class Save_Cases(object):
 
                 # Create input and output arrays
                 inpt = np.zeros([1, 1, mat_zp.shape[1]*2, mat_zp.shape[2], mat_zp.shape[3]], dtype='float32')
-                outp = np.zeros([1, 1, mat_zp.shape[1]*2, mat_zp.shape[2], mat_zp.shape[3]], dtype='float32')
+                # outp = np.zeros([1, 1, mat_zp.shape[1]*2, mat_zp.shape[2], mat_zp.shape[3]], dtype='float32')
 
                 # Storing real and imaginary parts
                 inpt[0, 0, 0:mat_zp.shape[2], :, :] = np.real(mat_zp[0, :, :, :])
@@ -140,12 +140,12 @@ class Save_Cases(object):
 
                 # Selecting subset of data to save
                 outputs2 = np.abs(outputs[:, :, 0:mat_zp.shape[1], :, :] + 1j * outputs[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
-                inputs = np.abs(inpt[:, :, 0:mat_zp.shape[1], :, :] + 1j * inpt[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
+                # inputs = np.abs(inpt[:, :, 0:mat_zp.shape[1], :, :] + 1j * inpt[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
                 # outp = np.abs(outp[:, :, 0:mat_zp.shape[1], :, :] + 1j * outp[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
 
                 outp_net[:, :, :, zz] = outputs2[0, 0, :, :, :]
                 # outp_all[:, :, :, zz] = outp[0, 0, :, :, :]
-                input_all[:, :, :, zz] = inputs[0, 0, :, :, :]
+                # input_all[:, :, :, zz] = inputs[0, 0, :, :, :]
 
                 #print( time.clock()-time_start)
 
@@ -156,7 +156,7 @@ class Save_Cases(object):
             # Save output of network as .mat files
             from scipy import io
             io.savemat(str(self.search_path_save_NET + filename_zp), {'outp_net': outp_net})
-            io.savemat(str(self.search_path_save_ZF + filename_zp), {'input_all': input_all})
+            # io.savemat(str(self.search_path_save_ZF + filename_zp), {'input_all': input_all})
             # io.savemat(str(self.search_path_save_RC + filename_zp), {'outp_all': outp_all})
 
         return input_all, outp_net
