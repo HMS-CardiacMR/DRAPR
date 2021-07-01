@@ -159,8 +159,8 @@ class Save_Cases(object):
             # io.savemat(str(self.search_path_save_ZF + filename_zp), {'input_all': input_all})
             # io.savemat(str(self.search_path_save_RC + filename_zp), {'outp_all': outp_all})
 
-        return input_all, outp_net
+        return outp_net
 
     def __call__(self):
-        input_all,outp_net,outp_all = self._save_files()
-        return input_all, outp_net
+        outp_net = self._save_files()
+        return outp_net
