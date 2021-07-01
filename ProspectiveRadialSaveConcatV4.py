@@ -22,9 +22,9 @@ class Save_Cases(object):
 
     def __init__(self, main_file,SubFile,normalize_window = 48,Crop_nx = 144,net2 = None,device = None):
         self.search_path_zp = main_file + SubFile + "/NuFFT_ZF/"
-        self.search_path_rc = main_file + SubFile + "/NuFFT_RC/"
+        # self.search_path_rc = main_file + SubFile + "/NuFFT_RC/"
         self.search_path_save_NET = main_file + SubFile + "/NuFFT_NET_saving/"
-        self.search_path_save_RC = main_file + SubFile + "/NuFFT_RC_saving/"
+        # self.search_path_save_RC = main_file + SubFile + "/NuFFT_RC_saving/"
         self.search_path_save_ZF = main_file + SubFile + "/NuFFT_ZF_saving/"
         self.net2 = net2
         self.device = device
@@ -41,12 +41,12 @@ class Save_Cases(object):
         except FileExistsError:
             print("Directory ", self.search_path_save_NET, " already exists")
 
-        try:
-            # Create target Directory
-            os.makedirs(self.search_path_save_RC)
-            print("Directory ", self.search_path_save_RC, " Created ")
-        except FileExistsError:
-            print("Directory ", self.search_path_save_RC, " already exists")
+        # try:
+        #     # Create target Directory
+        #     os.makedirs(self.search_path_save_RC)
+        #     print("Directory ", self.search_path_save_RC, " Created ")
+        # except FileExistsError:
+        #     print("Directory ", self.search_path_save_RC, " already exists")
 
         try:
             # Create target Directory
@@ -76,13 +76,13 @@ class Save_Cases(object):
 
             # Build path to file
             load_path_zp = self.search_path_zp + filename_zp
-            load_path_rc = self.search_path_rc + filename_zp
+            # load_path_rc = self.search_path_rc + filename_zp
 
             # Load data which is currently in .mat format
             mat_zp2 = hdf5storage.loadmat(load_path_zp)
             mat_zp2 = np.complex64(list(mat_zp2.values()))
-            mat_rc2 = hdf5storage.loadmat(load_path_rc)
-            mat_rc2 = np.complex64(list(mat_rc2.values()))
+            # mat_rc2 = hdf5storage.loadmat(load_path_rc)
+            # mat_rc2 = np.complex64(list(mat_rc2.values()))
 
             # Select start and end index based on the crop
             startx1 = np.floor(mat_zp2.shape[1] / 2 - self.Crop_nx / 2).astype(int)
@@ -90,7 +90,7 @@ class Save_Cases(object):
             starty1 = np.floor(mat_zp2.shape[2] / 2 - self.Crop_nx / 2).astype(int)
             endy1 = np.floor(mat_zp2.shape[2] / 2 + self.Crop_nx / 2).astype(int)
             mat_zp = mat_zp2[:, startx1:endx1, starty1:endy1, :, :]
-            mat_rc = mat_rc2[:, startx1:endx1, starty1:endy1, :, :]
+            # mat_rc = mat_rc2[:, startx1:endx1, starty1:endy1, :, :]
 
             # Create empty output arrays
             outp_net = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
@@ -107,7 +107,7 @@ class Save_Cases(object):
                 starty1 = np.floor(mat_zp2.shape[2] / 2 - self.Crop_nx / 2).astype(int)
                 endy1 = np.floor(mat_zp2.shape[2] / 2 + self.Crop_nx / 2).astype(int)
                 mat_zp = (mat_zp2[:, startx1:endx1, starty1:endy1, :, zz])
-                mat_rc = (mat_rc2[:, startx1:endx1, starty1:endy1, :, zz])
+                # mat_rc = (mat_rc2[:, startx1:endx1, starty1:endy1, :, zz])
 
                 # This variable doesn't seem to be used
                 nxx = mat_zp.shape[1]
@@ -118,8 +118,8 @@ class Save_Cases(object):
                 endx = np.floor(mat_zp.shape[1] / 2 + nx_crop2 / 2).astype(int)
                 mat_zp_crop = mat_zp[:, startx:endx, startx:endx, :]
                 mat_zp = mat_zp / np.percentile(np.abs(mat_zp_crop), 95)
-                mat_rc_crop = mat_rc[:, startx:endx, startx:endx, :]
-                mat_rc = mat_rc / np.percentile(np.abs(mat_rc_crop), 95)
+                # mat_rc_crop = mat_rc[:, startx:endx, startx:endx, :]
+                # mat_rc = mat_rc / np.percentile(np.abs(mat_rc_crop), 95)
 
                 # Create input and output arrays
                 inpt = np.zeros([1, 1, mat_zp.shape[1]*2, mat_zp.shape[2], mat_zp.shape[3]], dtype='float32')
@@ -128,8 +128,8 @@ class Save_Cases(object):
                 # Storing real and imaginary parts
                 inpt[0, 0, 0:mat_zp.shape[2], :, :] = np.real(mat_zp[0, :, :, :])
                 inpt[0, 0, mat_zp.shape[2]:mat_zp.shape[2]*2, :, :] = np.imag(mat_zp[0, :, :, :])
-                outp[0, 0, 0:mat_zp.shape[2], :, :] = np.real(mat_rc[0, :, :, :])
-                outp[0, 0, mat_zp.shape[2]:mat_zp.shape[2]*2, :, :] = np.imag(mat_rc[0, :, :, :])
+                # outp[0, 0, 0:mat_zp.shape[2], :, :] = np.real(mat_rc[0, :, :, :])
+                # outp[0, 0, mat_zp.shape[2]:mat_zp.shape[2]*2, :, :] = np.imag(mat_rc[0, :, :, :])
 
                 # Feed data into the network
                 inputs = torch.from_numpy(inpt)
@@ -141,7 +141,7 @@ class Save_Cases(object):
                 # Selecting subset of data to save
                 outputs2 = np.abs(outputs[:, :, 0:mat_zp.shape[1], :, :] + 1j * outputs[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
                 inputs = np.abs(inpt[:, :, 0:mat_zp.shape[1], :, :] + 1j * inpt[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
-                outp = np.abs(outp[:, :, 0:mat_zp.shape[1], :, :] + 1j * outp[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
+                # outp = np.abs(outp[:, :, 0:mat_zp.shape[1], :, :] + 1j * outp[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
 
                 outp_net[:, :, :, zz] = outputs2[0, 0, :, :, :]
                 outp_all[:, :, :, zz] = outp[0, 0, :, :, :]
@@ -157,7 +157,7 @@ class Save_Cases(object):
             from scipy import io
             io.savemat(str(self.search_path_save_NET + filename_zp), {'outp_net': outp_net})
             io.savemat(str(self.search_path_save_ZF + filename_zp), {'input_all': input_all})
-            io.savemat(str(self.search_path_save_RC + filename_zp), {'outp_all': outp_all})
+            # io.savemat(str(self.search_path_save_RC + filename_zp), {'outp_all': outp_all})
 
         return input_all, outp_net, outp_all
 
