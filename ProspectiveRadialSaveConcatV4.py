@@ -21,9 +21,9 @@ import time
 class Save_Cases(object):
 
     def __init__(self, main_file,SubFile,normalize_window = 48,Crop_nx = 144,net2 = None,device = None):
-        self.search_path_zp = main_file + SubFile + "/NuFFT_ZF/"
+        self.search_path_zp = main_file + SubFile + "/Gridded Data/"
         # self.search_path_rc = main_file + SubFile + "/NuFFT_RC/"
-        self.search_path_save_NET = main_file + SubFile + "/NuFFT_NET_saving/"
+        self.search_path_save_NET = main_file + SubFile + "/NN Output/"
         # self.search_path_save_RC = main_file + SubFile + "/NuFFT_RC_saving/"
         # self.search_path_save_ZF = main_file + SubFile + "/NuFFT_ZF_saving/"
         self.net2 = net2
@@ -94,8 +94,8 @@ class Save_Cases(object):
 
             # Create empty output arrays
             outp_net = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
-            # outp_all = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
-            # input_all = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
+            outp_all = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
+            input_all = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
 
             for zz in range(0, mat_zp.shape[4]):
 
@@ -159,8 +159,8 @@ class Save_Cases(object):
             # io.savemat(str(self.search_path_save_ZF + filename_zp), {'input_all': input_all})
             # io.savemat(str(self.search_path_save_RC + filename_zp), {'outp_all': outp_all})
 
-        return outp_net
+        return input_all,outp_net,outp_all
 
     def __call__(self):
-        outp_net = self._save_files()
-        return outp_net
+        input_all,outp_net,outp_all = self._save_files()
+        return input_all,outp_net,outp_all
