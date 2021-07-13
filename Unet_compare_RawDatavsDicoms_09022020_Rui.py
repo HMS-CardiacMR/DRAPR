@@ -145,12 +145,16 @@ net.to(device2)
 net.eval()
 
 ##  feeding in the prospectively acquired real-time cine and reconstructing this dataset
-main_file =  "./data/"
-SubFile = "Prospective"
+main_file =  "/mnt/alp/Users/Salah/Real_Time_Cine/Pre-Processed Data/"
+SubFile = "2021_7_1_SECHF"
 import ProspectiveRadialSaveConcatV4
 
 # test case used
 data_images_GPU = ProspectiveRadialSaveConcatV4.Save_Cases(main_file, SubFile, normalize_window = 48, Crop_nx = 144, net2 = net, device = device2)
+print(len(data_images_GPU.data))
+print(data_images_GPU.data[0].shape)
+print(data_images_GPU.data[1].shape)
+print(data_images_GPU.data[2].shape)
 input_all_GPU= data_images_GPU.data[0]
 # outp_net_GPU= data_images_GPU.data[1]
 # outp_all_GPU= data_images_GPU.data[2]
