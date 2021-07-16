@@ -6,14 +6,31 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import griddata
 
-def MCNUFFT_GPU_indv(k, w, b1):
-  # Multi-coil NuFFT
+import sigpy as sp
+import sigpy.plot as pl
 
-  return np.array([1])
+def reconstruct_with_sigpy(kSpaceData, coord):
+
+  [nColumns,nLines,nPhases,nCoils] = kSpaceData.shape
+
+  inputData = np.transpose(kSpaceData, [3,1,2,0])
+  inputData = np.reshape(inputData, (nCoils, nLines*nPhases, nColumns))
+
+  coord = np.stack((coord.real, coord.imag), -1)
+
+  oshape = (288, 288)
+  oversamp = 2  # oversampling factor.
+  width = 6     # interpolation kernel full-width in terms of oversampled grid
+  n = 8         # number of sampling points of the interpolation kernel
+
+  print('INPUT DATA', inputData.shape)
+  print('COORDINATES', coord.shape)
+
+  img_grid = sp.nufft_adjoint(inputData, coord, oshape=oshape, oversamp=oversamp, width=width)
+  pl.ImagePlot(img_grid, z=0, title='Multi-channel Gridding')
 
 def time_average(kSpaceData, nSamples, mod_switch, frames_keep):
   # Making autocalibrated b1 masks
-  kSpace_ref2 = kSpaceData;
   kdata_corrected_ref = kSpaceData;
 
   # Getting rid of possible bad coils
@@ -37,6 +54,10 @@ def time_average(kSpaceData, nSamples, mod_switch, frames_keep):
 
   for mm in range(0,len(Angles)):
     k[:,mm] = [i*np.exp(1j*Angles[mm]) for i in ray1]
+
+  reconstruct_with_sigpy(kSpaceData, k)
+
+  exit()
 
   w = np.abs(k) / max(abs(k.flatten()))
   w[np.isnan(w)] = 1
@@ -64,19 +85,19 @@ def pol2cart(rho, phi):
 
 def gridding(sparse_radial_data, N, timeframe):
     
-    [nCol,nLin,nLineshs] = sparse_radial_data.shape;
+    [nCol,nLin,nPhs] = sparse_radial_data.shape;
 
     X = np.zeros((nCol,nLin))
     Y = np.zeros((nCol,nLin))
 
-    grid_X = np.zeros((nCol,nLin,nLineshs))
-    grid_Y = np.zeros((nCol,nLin,nLineshs))
+    grid_X = np.zeros((nCol,nLin,nPhs))
+    grid_Y = np.zeros((nCol,nLin,nPhs))
 
-    n_temp_X = np.zeros((nCol,nLin,nLineshs))
-    n_temp_Y = np.zeros((nCol,nLin,nLineshs))
+    n_temp_X = np.zeros((nCol,nLin,nPhs))
+    n_temp_Y = np.zeros((nCol,nLin,nPhs))
 
-    g_cart_k_space_sparse = np.zeros((nCol,nCol,nLineshs))
-    g_mask_k_space_sparse = np.zeros((nCol,nCol,nLineshs))
+    g_cart_k_space_sparse = np.zeros((nCol,nCol,nPhs))
+    g_mask_k_space_sparse = np.zeros((nCol,nCol,nPhs))
 
     tau = (1.0 + np.sqrt(5.0)) / 2.0
     golden_angle = np.pi / (tau + N - 1)
@@ -84,7 +105,7 @@ def gridding(sparse_radial_data, N, timeframe):
     offSet = golden_angle * (steadystate_rays)
 
     # Convert all the polar coordinates to cartesian coordinates
-    for phase in range(0,nLineshs):
+    for phase in range(0,nPhs):
 
         l = 0
         
@@ -109,7 +130,7 @@ def gridding(sparse_radial_data, N, timeframe):
 
 
     # Apply gridding for each phase
-    for phase in range(0,nLineshs):
+    for phase in range(0,nPhs):
     
         img = sparse_radial_data[:,:,phase]
         
