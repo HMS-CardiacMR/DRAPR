@@ -1,13 +1,15 @@
 import ismrmrd
 import numpy as np
+import os
+import torch
 
 from scipy import io
 
 class feed_to_network(object):
 
     def __init__(self, main_file,SubFile,normalize_window = 48,Crop_nx = 144,net2 = None,device = None):
-        self.search_path_zp = main_file + SubFile + "/Gridded Data/"
-        self.search_path_save_NET = main_file + SubFile + "/NN Output/"
+        self.search_path_ismrmrd = main_file + SubFile + '.h5'
+        self.search_path_save_NET = main_file + '/NN Output/'
         self.net2 = net2
         self.device = device
         self.normalize_window = normalize_window
@@ -23,8 +25,10 @@ class feed_to_network(object):
         except FileExistsError:
           print("Directory ", self.search_path_save_NET, " already exists")
 
+          filename_zp = 'test_of_ismrmrd'
+
           # Load ISMRMRD formmated data
-          dataset = ismrmrd.Dataset('data/ISMRMRD/MRD_input_2021-07-22-095809_86.h5', '/dataset', True)
+          dataset = ismrmrd.Dataset(self.search_path_ismrmrd, '/dataset', True)
 
           # Count total images
           nImages = dataset.number_of_images('images_0')
@@ -88,6 +92,6 @@ class feed_to_network(object):
 
           return outp_net
       
-      def __call__(self):
-        outp_net = self._save_files()
-        return outp_net
+    def __call__(self):
+       outp_net = self._save_files()
+       return outp_net
