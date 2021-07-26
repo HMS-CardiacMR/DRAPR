@@ -9,6 +9,8 @@ from scipy.interpolate import griddata
 import sigpy as sp
 import sigpy.plot as pl
 
+from math import ceil
+
 def reconstruct_with_sigpy(kSpaceData, coord):
 
   [nColumns,nLines,nPhases,nCoils] = kSpaceData.shape
@@ -17,8 +19,9 @@ def reconstruct_with_sigpy(kSpaceData, coord):
   inputData = np.reshape(inputData, (nCoils, nLines*nPhases, nColumns))
 
   coord = np.stack((coord.real, coord.imag), -1)
+  coord = np.transpose(coord, [1,0,2])
 
-  oshape = (288, 288)
+  oshape = (inputData.shape[0], inputData.shape[2], inputData.shape[2])
   oversamp = 2  # oversampling factor.
   width = 6     # interpolation kernel full-width in terms of oversampled grid
   n = 8         # number of sampling points of the interpolation kernel
@@ -26,7 +29,9 @@ def reconstruct_with_sigpy(kSpaceData, coord):
   print('INPUT DATA', inputData.shape)
   print('COORDINATES', coord.shape)
 
-  img_grid = sp.nufft_adjoint(inputData, coord, oshape=oshape, oversamp=oversamp, width=width)
+  dcf = (coord[..., 0]**2 + coord[..., 1]**2)**0.5
+
+  img_grid = sp.nufft_adjoint(inputData*dcf, coord, oshape=oshape)
   pl.ImagePlot(img_grid, z=0, title='Multi-channel Gridding')
 
 def time_average(kSpaceData, nSamples, mod_switch, frames_keep):
@@ -35,7 +40,6 @@ def time_average(kSpaceData, nSamples, mod_switch, frames_keep):
 
   # Getting rid of possible bad coils
   [nColumns,nLines,nPhases,nCoils] = kdata_corrected_ref.shape
-  # kdata_ref = np.reshape(kdata_corrected_ref, (nColumns,nLines*nPhases,nCoils))
   kdata_ref = kdata_corrected_ref.reshape(nColumns,nLines*nPhases,nCoils)
 
   nx = kdata_ref.shape[0]
@@ -54,6 +58,18 @@ def time_average(kSpaceData, nSamples, mod_switch, frames_keep):
 
   for mm in range(0,len(Angles)):
     k[:,mm] = [i*np.exp(1j*Angles[mm]) for i in ray1]
+
+  # oshape = (kSpaceData.shape[0], kSpaceData.shape[2], kSpaceData.shape[2])
+
+  # kSpaceData = np.reshape(kSpaceData, (nCoils, nLines*nPhases, nColumns))
+
+  # oversamp = 2
+  # width = 4
+  # beta = np.pi * (((width / oversamp) * (oversamp - 0.5))**2 - 0.8)**0.5
+
+  # output = sp.interp.gridding(kSpaceData, k, oshape, kernel='kaiser_bessel', width=width, param=beta)
+
+  # pl.ImagePlot(output, z=0, title='Gridding')
 
   reconstruct_with_sigpy(kSpaceData, k)
 
@@ -180,7 +196,7 @@ def gridding(sparse_radial_data, N, timeframe):
 
 def main():
     
-    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'Raw', '2020_08_20_AALEM', 'meas_MID00524_FID122203_Radial_real_time_Cine_SAX.dat')
+    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'Raw', '2021_7_19_PHANTOM', 'meas_MID00319_FID81636_Pre_Ex_Radial_Cine_Single_HB_(Cap_Cycle)_baseline_adaptive.dat')
 
     twixObj = mapvbvd.mapVBVD(filename)
 
@@ -199,7 +215,7 @@ def main():
     print('Shape of K-Space Data After Permutation', kSpace.shape)
 
     nSlices = kSpace.shape[3]
-    nSamples = 4
+    nSamples = kSpace.shape[2]
     nCoils = 8
     frames_keep = 1
 
