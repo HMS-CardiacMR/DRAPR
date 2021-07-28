@@ -136,27 +136,30 @@ class Net(nn.Module):
         return output
 
 ## loading the trained model
-PATH = "./models/model.py"
+PATH = ".\\models\\model.py"
 net = Net()
-device2 = torch.device("cuda:5")
-net = nn.DataParallel(net, device_ids=[5,6])
-net.load_state_dict(torch.load(PATH))
-net.to(device2)
+# device2 = torch.device("cuda:0")
+device2 = torch.device("cpu")
+# net = nn.DataParallel(net, device_ids=[0])
+net = nn.DataParallel(net)
+net.load_state_dict(torch.load(PATH, map_location="cpu"))
+net = net.module.to(device2)
+# net.to(device2)
 net.eval()
 
 #  feeding in the prospectively acquired real-time cine and reconstructing this dataset
-main_file =  "/mnt/alp/Users/Salah/Real_Time_Cine/Pre-Processed Data/"
-SubFile = "2021_7_19_PHANTOM"
+# main_file =  "P:\\ALP\\Users\\Salah\\Real_Time_Cine\\Pre-Processed Data\\"
+# SubFile = "2021_7_19_PHANTOM"
 
-#main_file =  "/mnt/alp/Users/Salah/Real_Time_Cine/ISMRMRD/"
-#SubFile = "MRD_input_2021-07-22-095809_86"
+main_file =  "P:\\ALP\\Users\\Salah\\Real_Time_Cine\\ISMRMRD\\"
+SubFile = "MRD_input_2021-07-22-095809_86.h5"
 
-import ProspectiveRadialSaveConcatV4
-#import realtimecine_ismrmrd_input
+# import ProspectiveRadialSaveConcatV4
+import realtimecine_ismrmrd_input
 
 # test case used
-data_images_GPU = ProspectiveRadialSaveConcatV4.Save_Cases(main_file, SubFile, normalize_window = 48, Crop_nx = 144, net2 = net, device = device2)
-#data_images_GPU = realtimecine_ismrmrd_input.feed_to_network(main_file, SubFile, normalize_window = 48, Crop_nx = 144, net2 = net, device = device2)
+# data_images_GPU = ProspectiveRadialSaveConcatV4.Save_Cases(main_file, SubFile, normalize_window = 48, Crop_nx = 144, net2 = net, device = device2)
+data_images_GPU = realtimecine_ismrmrd_input.feed_to_network(main_file, SubFile, normalize_window = 48, Crop_nx = 144, net2 = net, device = device2)
 
 # print(len(data_images_GPU.data))
 # print(data_images_GPU.data[0].shape)
