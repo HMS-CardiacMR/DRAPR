@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import sys
 
-sys.path.append('/data1/HassanData/DeepLearning/BigDataCine/TrainingData/')
 import torch
 import numpy as np
 
