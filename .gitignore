@@ -109,6 +109,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+InLineIntegration/realtimecine-win-py362-venv
 
 # Spyder project settings
 .spyderproject
