@@ -18,8 +18,8 @@ PyWavelets==1.1.1
 scikit-image==0.16.2
 scipy==1.4.1
 six==1.16.0
-torch==1.4.0+cu92
-torchvision==0.5.0+cu92
+torch==1.9.0+cu111
+torchvision==0.10.0+cu111
 typing-extensions==3.10.0.0
 xsdata==21.7
 zipp==3.5.0

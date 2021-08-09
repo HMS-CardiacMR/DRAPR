@@ -8,8 +8,8 @@ from scipy import io
 class feed_to_network(object):
 
     def __init__(self, main_file,SubFile,normalize_window = 48,Crop_nx = 144,net2 = None,device = None):
-        self.search_path_ismrmrd = main_file + SubFile + '.h5'
-        self.search_path_save_NET = main_file + '/NN Output/'
+        self.search_path_ismrmrd = os.path.join(main_file, 'Gridded Data', SubFile)
+        self.search_path_save_NET = os.path.join(main_file, 'NN Output')
         self.net2 = net2
         self.device = device
         self.normalize_window = normalize_window
@@ -25,7 +25,7 @@ class feed_to_network(object):
         except FileExistsError:
           print("Directory ", self.search_path_save_NET, " already exists")
 
-          filename_zp = 'test_of_ismrmrd'
+          filename_zp = 'test_of_ismrmrd_local.mat'
 
           # Load ISMRMRD formmated data
           dataset = ismrmrd.Dataset(self.search_path_ismrmrd, '/dataset', True)
@@ -88,7 +88,7 @@ class feed_to_network(object):
 
               print('Completed Slice:', zz)
 
-              io.savemat(str(self.search_path_save_NET + filename_zp), {'outp_net': outp_net})
+              io.savemat(os.path.join(self.search_path_save_NET, filename_zp), {'outp_net': outp_net})
 
           return outp_net
       

@@ -1,8 +1,6 @@
-import matplotlib.pyplot as plt
-import sys
-
 import torch
-import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 
 ## Defining the network
 Hidden_layer = 64
@@ -12,8 +10,6 @@ Padd_space = 1
 Padd_time = 1
 drop_out_level = 0.15
 Bias = True
-import torch.nn as nn
-import torch.nn.functional as F
 
 class Net(nn.Module):
     def __init__(self):
@@ -133,52 +129,3 @@ class Net(nn.Module):
         output = x+self.conv_final.forward(x_up2_v2)
 
         return output
-
-## loading the trained model
-PATH = ".\\models\\model.py"
-net = Net()
-# device2 = torch.device("cuda:0")
-device2 = torch.device("cpu")
-# net = nn.DataParallel(net, device_ids=[0])
-net = nn.DataParallel(net)
-net.load_state_dict(torch.load(PATH, map_location="cpu"))
-net = net.module.to(device2)
-# net.to(device2)
-net.eval()
-
-#  feeding in the prospectively acquired real-time cine and reconstructing this dataset
-# main_file =  "P:\\ALP\\Users\\Salah\\Real_Time_Cine\\Pre-Processed Data\\"
-# SubFile = "2021_7_19_PHANTOM"
-
-main_file =  "P:\\ALP\\Users\\Salah\\Real_Time_Cine\\ISMRMRD\\"
-SubFile = "MRD_input_2021-07-22-095809_86.h5"
-
-# import ProspectiveRadialSaveConcatV4
-import realtimecine_ismrmrd_input
-
-# test case used
-# data_images_GPU = ProspectiveRadialSaveConcatV4.Save_Cases(main_file, SubFile, normalize_window = 48, Crop_nx = 144, net2 = net, device = device2)
-data_images_GPU = realtimecine_ismrmrd_input.feed_to_network(main_file, SubFile, normalize_window = 48, Crop_nx = 144, net2 = net, device = device2)
-
-# print(len(data_images_GPU.data))
-# print(data_images_GPU.data[0].shape)
-# print(data_images_GPU.data[1].shape)
-# print(data_images_GPU.data[2].shape)
-# input_all_GPU= data_images_GPU.data[0]
-# outp_net_GPU= data_images_GPU.data[1]
-# outp_all_GPU= data_images_GPU.data[2]
-
-# fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=(13, 5))
-# ax[0].imshow(np.abs(input_all_GPU[ :, :, 16,7]), cmap='gray', vmin=0, vmax=1.75)
-# ax[1].imshow(np.abs(outp_net_GPU[ :, :, 16,7]), cmap='gray', vmin=0, vmax=1.75)
-# ax[2].imshow(np.abs(outp_all_GPU[ :, :, 16,7]), cmap='gray', vmin=0, vmax=1.75)
-
-# fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=(13, 5))
-# ax[0].imshow(np.abs(input_all_GPU[ :, :, 15,5]), cmap='gray', vmin=0, vmax=1.75)
-# ax[1].imshow(np.abs(outp_net_GPU[ :, :, 15,5]), cmap='gray', vmin=0, vmax=1.75)
-# ax[2].imshow(np.abs(outp_all_GPU[ :, :, 15,5]), cmap='gray', vmin=0, vmax=1.75)
-
-# fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=(13, 5))
-# ax[0].imshow(np.abs(input_all_GPU[ :, :, 20,5]), cmap='gray', vmin=0, vmax=1.75)
-# ax[1].imshow(np.abs(outp_net_GPU[ :, :, 20,5]), cmap='gray', vmin=0, vmax=1.75)
-# ax[2].imshow(np.abs(outp_all_GPU[ :, :, 20,5]), cmap='gray', vmin=0, vmax=1.75)

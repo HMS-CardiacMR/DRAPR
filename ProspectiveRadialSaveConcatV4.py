@@ -84,6 +84,9 @@ class Save_Cases(object):
             # mat_rc2 = hdf5storage.loadmat(load_path_rc)
             # mat_rc2 = np.complex64(list(mat_rc2.values()))
 
+            # Adding a new axis since code expect 5D array
+            mat_zp2 = mat_zp2[..., np.newaxis]
+
             # Select start and end index based on the crop
             startx1 = np.floor(mat_zp2.shape[1] / 2 - self.Crop_nx / 2).astype(int)
             endx1 = np.floor(mat_zp2.shape[1] / 2 + self.Crop_nx / 2).astype(int)
