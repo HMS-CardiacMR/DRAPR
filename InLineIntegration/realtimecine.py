@@ -21,6 +21,9 @@ from scipy import io
 # Folder for debug output files
 debugFolder = "/tmp/share/debug"
 
+# Enable/Disable GPU Use
+use_gpu = False
+
 def process(connection, config, metadata):
     logging.info("Config: \n%s", config)
 
@@ -60,19 +63,25 @@ def process(connection, config, metadata):
             logging.info("Processing a group of images")
             cine_movies = process_image(imgGroup, connection, config, metadata)
 
-        print('Cine movies have shape:', cine_movies.shape)
+        # logging.info('Cine movies have shape: %s', str(cine_movies.shape))
         # io.savemat(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', 'cine_movies.mat'), {'outp_net': cine_movies})
 
         for slice_index in range(cine_movies.shape[-1]):
+            
             for image_index in range(cine_movies[..., slice_index].shape[-1]):
+                
                 data = cine_movies[..., image_index, slice_index]
                 data *= 1000
                 data = data.astype(np.int16)
 
-                print('Image Data:', data)
+                # Transpose the image
+                data = np.rot90(data, 1) # Rotate 90 degrees
+                data = np.flipud(data)   # Flip vertically
                 
                 # Format as ISMRMRD image data
                 image = ismrmrd.Image.from_array(data)
+
+                image.image_series_index = slice_index
 
                 # Set field of view
                 image.field_of_view = (ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.x), 
@@ -108,14 +117,21 @@ def process_image(images, connection, config, metadata):
 
     logging.debug("Processing data with %d images of type %s", len(images), ismrmrd.get_dtype_from_data_type(images[0].data_type))
 
-    # Extract image data into a 5D array of size [img cha z y x]
-    data = np.stack([img.data                              for img in images])
+    # Extract image data into a 4D array of size [img z y x]
+    data = np.stack([img.data[0,...]                       for img in images])
     head = [img.getHead()                                  for img in images]
     meta = [ismrmrd.Meta.deserialize(img.attribute_string) for img in images]
 
-    data = data.transpose((2, 3, 4, 0, 1))
+    nSlices = int(images[-1].slice + 1)         # Slice is an index so we need to add 1
+    nPhases = int(len(images)/nSlices)          # Equal number of phases per slice
 
-    print(data.shape)
+    data = data.reshape(nSlices, nPhases, data.shape[1], data.shape[2], data.shape[3]) # slice, phase, z, y, x
+    data = data.transpose((2, 4, 3, 1, 0))                                             # z, x, y, phase, slice
+
+    # logging.info("Saving input to the network.")
+    # io.savemat(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', 'input_to_network.mat'), {'input_net': data[0,:,:,:,:]})
+
+    logging.info("Incoming dataset contains %s encodings", str(data.shape))
 
     normalize_window = 48
     crop_nx = 144
@@ -152,27 +168,49 @@ def process_image(images, connection, config, metadata):
       inpt[0, 0, 0:mat_zp.shape[2], :, :] = np.real(mat_zp[0, :, :, :])
       inpt[0, 0, mat_zp.shape[2]:mat_zp.shape[2]*2, :, :] = np.imag(mat_zp[0, :, :, :])
 
-      ## loading the trained model
-      PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', 'model.py')
-      net = Net()
-      device = torch.device("cpu")
-      net = nn.DataParallel(net)
-      net.load_state_dict(torch.load(PATH, map_location="cpu"))
-      net = net.module.to(device)
-      net.eval()
+      if use_gpu:
+        logging.info("Using GPU")
+        ## loading the trained model
+        PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', 'model.py')
+        net = Net()
+        device = torch.device("cuda:0")
+        net = nn.DataParallel(net, device_ids=[0])
+        net.load_state_dict(torch.load(PATH))
+        net = net.to(device)
+        net.eval()
 
-      # Feed data into the network
-      inputs = torch.from_numpy(inpt)
-      inputs = inputs.to(device)
-      outputs = net(inputs)
-      outputs = outputs.cpu()
-      outputs = outputs.data.numpy()
+        # Feed data into the network
+        with torch.no_grad():
+          inputs = torch.from_numpy(inpt)
+          inputs = inputs.to(device)
+          outputs = net(inputs)
+          outputs = outputs.cpu()
+          outputs = outputs.data.numpy()
+
+      else:
+        logging.info("Using CPU")
+        ## loading the trained model
+        PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', 'model.py')
+        net = Net()
+        device = torch.device("cpu")
+        net = nn.DataParallel(net)
+        net.load_state_dict(torch.load(PATH, map_location="cpu"))
+        net = net.module.to(device)
+        net.eval()
+
+        # Feed data into the network
+        with torch.no_grad():
+          inputs = torch.from_numpy(inpt)
+          inputs = inputs.to(device)
+          outputs = net(inputs)
+          outputs = outputs.cpu()
+          outputs = outputs.data.numpy()
 
       # Selecting subset of data to save
       outputs2 = np.abs(outputs[:, :, 0:mat_zp.shape[1], :, :] + 1j * outputs[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
 
       outp_net[:, :, :, zz] = outputs2[0, 0, :, :, :]
 
-      print('Completed Slice:', zz)
+      logging.info("Completed Slice: %d", zz)
 
     return outp_net
