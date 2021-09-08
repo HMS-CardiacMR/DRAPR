@@ -1,5 +1,5 @@
 # ----- First stage to build ismrmrd and siemens_to_ismrmrd -----
-FROM python:3.9-slim AS mrd_converter
+FROM python:3.6 AS mrd_converter
 ARG  DEBIAN_FRONTEND=noninteractive
 ENV  TZ=America/Chicago
 
@@ -30,7 +30,7 @@ RUN cd /opt/code && \
 RUN cd /usr/local/lib && tar -czvf libismrmrd.tar.gz libismrmrd*
 
 # ----- Start another clean build without all of the build dependencies of siemens_to_ismrmrd -----
-FROM python:3.9-slim
+FROM python:3.6
 
 LABEL org.opencontainers.image.description="Python MRD Image Reconstruction and Analysis Server"
 LABEL org.opencontainers.image.url="https://github.com/kspaceKelvin/python-ismrmrd-server"
@@ -51,18 +51,39 @@ RUN apt-get update && apt-get install --no-install-recommends -y libxslt1.1 libh
 RUN mkdir -p /opt/code
 
 RUN  cd /opt/code \
-     && git clone https://github.com/ismrmrd/ismrmrd-python.git \
-     && cd /opt/code/ismrmrd-python \
-     && pip3 install --no-cache-dir .
-
-RUN  cd /opt/code \
      && git clone https://github.com/ismrmrd/ismrmrd-python-tools.git \
      && cd /opt/code/ismrmrd-python-tools \
      && pip3 install --no-cache-dir .
 
 # matplotlib is used by rgb.py and provides various visualization tools including colormaps
 # pydicom is used by dicom2mrd.py to parse DICOM data
-RUN pip3 install --no-cache-dir matplotlib pydicom pynetdicom
+RUN pip3 install --no-cache-dir pydicom pynetdicom
+
+RUN pip3 install --no-cache-dir cached-property==1.5.2
+RUN pip3 install --no-cache-dir cycler==0.10.0
+RUN pip3 install --no-cache-dir dataclasses==0.8
+RUN pip3 install --no-cache-dir decorator==4.4.2
+RUN pip3 install --no-cache-dir h5py==3.1.0
+RUN pip3 install --no-cache-dir hdf5storage==0.1.15
+RUN pip3 install --no-cache-dir imageio==2.9.0
+RUN pip3 install --no-cache-dir importlib-metadata==4.6.1
+RUN pip3 install --no-cache-dir ismrmrd==1.9.1
+RUN pip3 install --no-cache-dir kiwisolver==1.3.1
+RUN pip3 install --no-cache-dir matplotlib==3.1.3
+RUN pip3 install --no-cache-dir networkx==2.5.1
+RUN pip3 install --no-cache-dir numpy==1.19.5
+RUN pip3 install --no-cache-dir Pillow==8.2.0
+RUN pip3 install --no-cache-dir pyparsing==2.4.7
+RUN pip3 install --no-cache-dir python-dateutil==2.8.1
+RUN pip3 install --no-cache-dir PyWavelets==1.1.1
+RUN pip3 install --no-cache-dir scikit-image==0.16.2
+RUN pip3 install --no-cache-dir scipy==1.4.1
+RUN pip3 install --no-cache-dir six==1.16.0
+RUN pip3 install --no-cache-dir torch==1.9.0
+RUN pip3 install --no-cache-dir torchvision==0.10.0
+RUN pip3 install --no-cache-dir typing-extensions==3.10.0.0
+RUN pip3 install --no-cache-dir xsdata==21.7
+RUN pip3 install --no-cache-dir zipp==3.5.0
 
 # # If building from the GitHub repo, uncomment the below section, open a command
 # # prompt in the folder containing this Dockerfile and run the command:
@@ -78,7 +99,7 @@ COPY python-ismrmrd-server  /opt/code/python-ismrmrd-server
 
 # Ensure startup scripts have Unix (LF) line endings, which may not be true
 # if the git repo is cloned in Windows
-RUN apt-get install -y dos2unix \
+RUN apt-get update && apt-get install -y dos2unix \
     && find /opt/code/python-ismrmrd-server -name *.sh | xargs dos2unix \
     && apt-get remove dos2unix -y
 
