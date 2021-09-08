@@ -18,11 +18,10 @@ from time import perf_counter
 from network_arch import Net
 from scipy import io
 
-# Folder for debug output files
-debugFolder = "/tmp/share/debug"
-
-# Enable/Disable GPU Use
-use_gpu = False
+debugFolder = "/tmp/share/debug"  # Folder for debug output files
+use_gpu = False                   # Enable/Disable GPU Use
+n_threads = 12                    # Set number of threads for PyTorch
+frame_skip = 20                   # Frames to skip to reach steady state
 
 def process(connection, config, metadata):
     logging.info("Config: \n%s", config)
@@ -75,8 +74,8 @@ def process(connection, config, metadata):
                 data = data.astype(np.int16)
 
                 # Transpose the image
-                data = np.rot90(data, 1) # Rotate 90 degrees
-                data = np.flipud(data)   # Flip vertically
+                data = np.rot90(data, 3) # Rotate 90 degrees
+                data = np.fliplr(data)   # Flip left to right
                 
                 # Format as ISMRMRD image data
                 image = ismrmrd.Image.from_array(data)
@@ -93,6 +92,8 @@ def process(connection, config, metadata):
                 tmpMeta['DataRole']                       = 'Image' 
                 tmpMeta['ImageProcessingHistory']         = ['PYTHON', 'REALTIMECINE']
                 tmpMeta['SequenceDescriptionAdditional']  = 'FIRE'
+                tmpMeta['WindowCenter']                   = '1500'
+                tmpMeta['WindowWidth']                    = '4000'
 
                 metaXml = tmpMeta.serialize()
 
@@ -141,7 +142,7 @@ def process_image(images, connection, config, metadata):
     endx1 = np.floor(data.shape[1] / 2 + crop_nx / 2).astype(int)
     starty1 = np.floor(data.shape[2] / 2 - crop_nx / 2).astype(int)
     endy1 = np.floor(data.shape[2] / 2 + crop_nx / 2).astype(int)
-    mat_zp = data[:, startx1:endx1, starty1:endy1, :, :]
+    mat_zp = data[:, startx1:endx1, starty1:endy1, frame_skip:, :]
 
     # Create empty output arrays
     outp_net = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
@@ -153,7 +154,7 @@ def process_image(images, connection, config, metadata):
       endx1 = np.floor(data.shape[1] / 2 + crop_nx / 2).astype(int)
       starty1 = np.floor(data.shape[2] / 2 - crop_nx / 2).astype(int)
       endy1 = np.floor(data.shape[2] / 2 + crop_nx / 2).astype(int)
-      mat_zp = (data[:, startx1:endx1, starty1:endy1, :, zz])
+      mat_zp = (data[:, startx1:endx1, starty1:endy1, frame_skip:, zz])
 
       # Apply normalization
       startx = np.floor(mat_zp.shape[1] / 2 - normalize_window / 2).astype(int)
@@ -167,6 +168,8 @@ def process_image(images, connection, config, metadata):
       # Storing real and imaginary parts
       inpt[0, 0, 0:mat_zp.shape[2], :, :] = np.real(mat_zp[0, :, :, :])
       inpt[0, 0, mat_zp.shape[2]:mat_zp.shape[2]*2, :, :] = np.imag(mat_zp[0, :, :, :])
+
+      torch.set_num_threads(n_threads)
 
       if use_gpu:
         logging.info("Using GPU")
