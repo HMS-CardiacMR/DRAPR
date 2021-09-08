@@ -137,3 +137,7 @@ models/
 
 # Input Data
 data/
+
+# Input and Output Folders
+InLineIntegration/input/*
+InLineIntegration/output/*
