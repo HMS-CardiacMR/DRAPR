@@ -60,7 +60,7 @@ def process(connection, config, metadata):
 
         if len(imgGroup) > 0:
             logging.info("Processing a group of images")
-            cine_movies = process_image(imgGroup, connection, config, metadata)
+            cine_movies, head = process_image(imgGroup, connection, config, metadata)
 
         # logging.info('Cine movies have shape: %s', str(cine_movies.shape))
         # io.savemat(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', 'cine_movies.mat'), {'outp_net': cine_movies})
@@ -73,14 +73,17 @@ def process(connection, config, metadata):
                 data *= 1000
                 data = data.astype(np.int16)
 
-                # Transpose the image
-                data = np.rot90(data, 3) # Rotate 90 degrees
-                data = np.fliplr(data)   # Flip left to right
+                data = np.rot90(data, 3) # Rotate clockwise 90 degrees
                 
                 # Format as ISMRMRD image data
                 image = ismrmrd.Image.from_array(data)
 
-                image.image_series_index = slice_index
+                # Set the header information
+                tmpHead = head[slice_index][image_index]
+                tmpHead.data_type = image.getHead().data_type
+                tmpHead.image_index = image_index
+                tmpHead.image_series_index = 0
+                image.setHead(tmpHead)
 
                 # Set field of view
                 image.field_of_view = (ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.x), 
@@ -94,6 +97,13 @@ def process(connection, config, metadata):
                 tmpMeta['SequenceDescriptionAdditional']  = 'FIRE'
                 tmpMeta['WindowCenter']                   = '1500'
                 tmpMeta['WindowWidth']                    = '4000'
+
+                # Add image orientation directions to MetaAttributes if not already present
+                if tmpMeta.get('ImageRowDir') is None:
+                    tmpMeta['ImageRowDir'] = ["{:.18f}".format(tmpHead.read_dir[0]), "{:.18f}".format(tmpHead.read_dir[1]), "{:.18f}".format(tmpHead.read_dir[2])]
+
+                if tmpMeta.get('ImageColumnDir') is None:
+                    tmpMeta['ImageColumnDir'] = ["{:.18f}".format(tmpHead.phase_dir[0]), "{:.18f}".format(tmpHead.phase_dir[1]), "{:.18f}".format(tmpHead.phase_dir[2])]
 
                 metaXml = tmpMeta.serialize()
 
@@ -120,7 +130,7 @@ def process_image(images, connection, config, metadata):
 
     # Extract image data into a 4D array of size [img z y x]
     data = np.stack([img.data[0,...]                       for img in images])
-    head = [img.getHead()                                  for img in images]
+    head = [img.getHead()                         for img in images]
     meta = [ismrmrd.Meta.deserialize(img.attribute_string) for img in images]
 
     nSlices = int(images[-1].slice + 1)         # Slice is an index so we need to add 1
@@ -128,6 +138,11 @@ def process_image(images, connection, config, metadata):
 
     data = data.reshape(nSlices, nPhases, data.shape[1], data.shape[2], data.shape[3]) # slice, phase, z, y, x
     data = data.transpose((2, 4, 3, 1, 0))                                             # z, x, y, phase, slice
+
+    def to_matrix(l, n):
+        return [l[i:i+n] for i in range(0, len(l), n)]
+
+    head = to_matrix(head, nPhases)
 
     # logging.info("Saving input to the network.")
     # io.savemat(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', 'input_to_network.mat'), {'input_net': data[0,:,:,:,:]})
@@ -216,4 +231,4 @@ def process_image(images, connection, config, metadata):
 
       logging.info("Completed Slice: %d", zz)
 
-    return outp_net
+    return outp_net, head
