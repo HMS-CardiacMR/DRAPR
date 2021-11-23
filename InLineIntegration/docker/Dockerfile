@@ -63,6 +63,8 @@ RUN pip3 install --no-cache-dir pydicom pynetdicom
 COPY ./InLineIntegration/docker/requirements.txt ./
 RUN pip3 install --no-cache-dir -r ./requirements.txt
 
+RUN pip3 install torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/cu92/torch_stable.html
+
 # # If building from the GitHub repo, uncomment the below section, open a command
 # # prompt in the folder containing this Dockerfile and run the command:
 # #    docker build --no-cache -t kspacekelvin/fire-python ./

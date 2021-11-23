@@ -19,7 +19,7 @@ from network_arch import Net
 from scipy import io
 
 debugFolder = "/tmp/share/debug"  # Folder for debug output files
-use_gpu = False                   # Enable/Disable GPU Use
+use_gpu = True                    # Enable/Disable GPU Use
 n_threads = 12                    # Set number of threads for PyTorch
 frame_skip = 20                   # Frames to skip to reach steady state
 
