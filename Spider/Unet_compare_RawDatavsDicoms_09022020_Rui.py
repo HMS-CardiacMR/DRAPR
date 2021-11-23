@@ -135,17 +135,21 @@ class Net(nn.Module):
         return output
 
 ## loading the trained model
-PATH = "./models/model.py"
+PATH = "../models/model.py"
 net = Net()
-device2 = torch.device("cuda:6")
-net = nn.DataParallel(net, device_ids=[6,7])
+device2 = torch.device("cuda:4")
+net = nn.DataParallel(net, device_ids=[4,5])
 net.load_state_dict(torch.load(PATH))
 net.to(device2)
 net.eval()
 
+# Feeding data reconstructed using python pre-processing
+main_file = "/mnt/alp/Research Data Sets/PhaseContrastDL/data/twix_recons/"
+SubFile = "P_2021-11-11_Mehigan_James_M_1949"
+
 # feeding in the prospectively acquired real-time cine and reconstructing this dataset
-main_file =  "/mnt/alp/Research Data Sets/ExerciseRealTimeCineDL/main/twix_recons/"
-SubFile = "2021_06_10_MOGLM"
+#main_file =  "/mnt/alp/Research Data Sets/ExerciseRealTimeCineDL/phantoms/twix_recons/"
+#SubFile = "2021_08_30_PHANTOM"
 
 #main_file =  "/mnt/alp/Users/Salah/Real_Time_Cine/ISMRMRD/"
 #SubFile = "MRD_input_2021-07-22-095809_86"

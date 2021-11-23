@@ -79,14 +79,23 @@ class Save_Cases(object):
             # load_path_rc = self.search_path_rc + filename_zp
 
             # Load data which is currently in .mat format
-            mat_zp2 = hdf5storage.loadmat(load_path_zp)
-            mat_zp2 = np.complex64(list(mat_zp2.values()))
+            # mat_zp2 = hdf5storage.loadmat(load_path_zp)
+            # mat_zp2 = np.complex64(list(mat_zp2.values()))
+            mat_zp2 = hdf5storage.loadmat(load_path_zp)['recon_nufft']
+            mat_zp2 = np.complex64(mat_zp2[0][0])
             # mat_rc2 = hdf5storage.loadmat(load_path_rc)
             # mat_rc2 = np.complex64(list(mat_rc2.values()))
 
+            mat_zp2 = mat_zp2[:,:,:200]
+
             # Adding a new axis since code expect 5D array
             if len(mat_zp2.shape) < 5:
-               mat_zp2 = mat_zp2[np.newaxis, ...]
+               # If there is no slice index we add one
+               if len(mat_zp2.shape) < 4:
+                  mat_zp2 = mat_zp2[np.newaxis, ..., np.newaxis]
+               # If there is a slice index we just add the leading z-axis
+               else:
+                  mat_zp2 = mat_zp2[np.newaxis, ...]
 
             print('Shape of input array:', mat_zp2.shape)
 
@@ -137,15 +146,26 @@ class Save_Cases(object):
                 # outp[0, 0, 0:mat_zp.shape[2], :, :] = np.real(mat_rc[0, :, :, :])
                 # outp[0, 0, mat_zp.shape[2]:mat_zp.shape[2]*2, :, :] = np.imag(mat_rc[0, :, :, :])
 
+                [n1, n2, n3, n4, n5] = inpt.shape
+
+                outp = np.zeros(inpt.shape)
+
                 with torch.no_grad():
-                  # Feed data into the network
+                  # for i in range(0, inpt.shape[4]-2, 3):
+                    # print('Processing Slice:', i)
+                    # Feed data into the network
+                    # input_with_repmat = np.concatenate((inpt[:,:,:,:,i:i+3], inpt[:,:,:,:,i:i+3]), axis=4)
+                    # input_with_zero_padding = np.zeros((n1, n2, n3, n4, 10), dtype=np.float32)
+                    # input_with_zero_padding[:,:,:,:,0:1] = inpt[:,:,:,:,i:i+1]
                   inputs = torch.from_numpy(inpt)
                   inputs = inputs.to(self.device)
                   outputs = self.net2(inputs)
                   outputs = outputs.cpu()
                   outputs = outputs.data.numpy()
+                    # outp[:,:,:,:,i:i+3] = outputs[...,0:3]
 
                 # Selecting subset of data to save
+                # outputs = outp
                 outputs2 = np.abs(outputs[:, :, 0:mat_zp.shape[1], :, :] + 1j * outputs[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
                 # inputs = np.abs(inpt[:, :, 0:mat_zp.shape[1], :, :] + 1j * inpt[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
                 # outp = np.abs(outp[:, :, 0:mat_zp.shape[1], :, :] + 1j * outp[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
