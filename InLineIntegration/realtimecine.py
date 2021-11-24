@@ -100,10 +100,10 @@ def process(connection, config, metadata):
                 # tmpHead.image_series_index = 0
                 # image.setHead(tmpHead)
 
-                # # Set field of view
-                # image.field_of_view = (ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.x), 
-                #                         ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.y), 
-                #                         ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.z))
+                # Set field of view
+                image.field_of_view = (ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.x), 
+                                        ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.y), 
+                                        ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.z))
 
                 # # Create a copy of the original ISMRMRD Meta attributes and update
                 # tmpMeta = ismrmrd.Meta.deserialize(image.attribute_string)
@@ -165,10 +165,8 @@ def process_image(images, connection, config, metadata):
         os.makedirs(debugFolder)
         logging.debug("Created folder " + debugFolder + " for debug output files")
 
-    logging.debug("Processing data with %d images of type %s", len(images), ismrmrd.get_dtype_from_data_type(images[0].data_type))
-
     # (n_slice, n_phase, x, y) -> (x, y, n_phase, n_slice)
-    data = data.transpose((3, 2, 1, 0))
+    data = images.transpose((3, 2, 1, 0))
     # Adding z-axis
     data = data[np.newaxis, ...]
 
