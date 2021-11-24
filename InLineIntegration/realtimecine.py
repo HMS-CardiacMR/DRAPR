@@ -75,7 +75,7 @@ def process(connection, config, metadata):
             logging.info("Processing a group of k-space data")
             images = process_kspace(kdataGroup, connection, config, metadata)
             logging.info("Processing pre-processed images")
-            cine_movies, head = process_image(imgGroup, connection, config, metadata)
+            cine_movies = process_image(images, connection, config, metadata)
 
         # logging.info('Cine movies have shape: %s', str(cine_movies.shape))
         # io.savemat(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', 'cine_movies.mat'), {'outp_net': cine_movies})
@@ -93,39 +93,39 @@ def process(connection, config, metadata):
                 # Format as ISMRMRD image data
                 image = ismrmrd.Image.from_array(data)
 
-                # Set the header information
-                tmpHead = head[slice_index][image_index]
-                tmpHead.data_type = image.getHead().data_type
-                tmpHead.image_index = image_index
-                tmpHead.image_series_index = 0
-                image.setHead(tmpHead)
+                # # Set the header information
+                # tmpHead = head[slice_index][image_index]
+                # tmpHead.data_type = image.getHead().data_type
+                # tmpHead.image_index = image_index
+                # tmpHead.image_series_index = 0
+                # image.setHead(tmpHead)
 
-                # Set field of view
-                image.field_of_view = (ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.x), 
-                                        ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.y), 
-                                        ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.z))
+                # # Set field of view
+                # image.field_of_view = (ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.x), 
+                #                         ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.y), 
+                #                         ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.z))
 
-                # Create a copy of the original ISMRMRD Meta attributes and update
-                tmpMeta = ismrmrd.Meta.deserialize(image.attribute_string)
-                tmpMeta['DataRole']                       = 'Image' 
-                tmpMeta['ImageProcessingHistory']         = ['PYTHON', 'REALTIMECINE']
-                tmpMeta['SequenceDescriptionAdditional']  = 'FIRE'
-                tmpMeta['WindowCenter']                   = '1500'
-                tmpMeta['WindowWidth']                    = '4000'
+                # # Create a copy of the original ISMRMRD Meta attributes and update
+                # tmpMeta = ismrmrd.Meta.deserialize(image.attribute_string)
+                # tmpMeta['DataRole']                       = 'Image' 
+                # tmpMeta['ImageProcessingHistory']         = ['PYTHON', 'REALTIMECINE']
+                # tmpMeta['SequenceDescriptionAdditional']  = 'FIRE'
+                # tmpMeta['WindowCenter']                   = '1500'
+                # tmpMeta['WindowWidth']                    = '4000'
 
-                # Add image orientation directions to MetaAttributes if not already present
-                if tmpMeta.get('ImageRowDir') is None:
-                    tmpMeta['ImageRowDir'] = ["{:.18f}".format(tmpHead.read_dir[0]), "{:.18f}".format(tmpHead.read_dir[1]), "{:.18f}".format(tmpHead.read_dir[2])]
+                # # Add image orientation directions to MetaAttributes if not already present
+                # if tmpMeta.get('ImageRowDir') is None:
+                #     tmpMeta['ImageRowDir'] = ["{:.18f}".format(tmpHead.read_dir[0]), "{:.18f}".format(tmpHead.read_dir[1]), "{:.18f}".format(tmpHead.read_dir[2])]
 
-                if tmpMeta.get('ImageColumnDir') is None:
-                    tmpMeta['ImageColumnDir'] = ["{:.18f}".format(tmpHead.phase_dir[0]), "{:.18f}".format(tmpHead.phase_dir[1]), "{:.18f}".format(tmpHead.phase_dir[2])]
+                # if tmpMeta.get('ImageColumnDir') is None:
+                #     tmpMeta['ImageColumnDir'] = ["{:.18f}".format(tmpHead.phase_dir[0]), "{:.18f}".format(tmpHead.phase_dir[1]), "{:.18f}".format(tmpHead.phase_dir[2])]
 
-                metaXml = tmpMeta.serialize()
+                # metaXml = tmpMeta.serialize()
 
-                logging.debug("Image MetaAttributes: %s", xml.dom.minidom.parseString(metaXml).toprettyxml())
-                logging.debug("Image data has %d elements", image.data.size)
+                # logging.debug("Image MetaAttributes: %s", xml.dom.minidom.parseString(metaXml).toprettyxml())
+                # logging.debug("Image data has %d elements", image.data.size)
 
-                image.attribute_string = metaXml
+                # image.attribute_string = metaXml
 
                 # Send image back to the client
                 logging.debug("Sending images to client")
@@ -157,6 +157,8 @@ def process_kspace(kspace, connection, config, metadata):
 
     image_recon_combined = nufft.NUFFT(data_transposed, device='cuda', remove_n_time_frames=frame_skip)
 
+    return image_recon_combined
+
 def process_image(images, connection, config, metadata):
     # Create folder, if necessary
     if not os.path.exists(debugFolder):
@@ -165,21 +167,10 @@ def process_image(images, connection, config, metadata):
 
     logging.debug("Processing data with %d images of type %s", len(images), ismrmrd.get_dtype_from_data_type(images[0].data_type))
 
-    # Extract image data into a 4D array of size [img z y x]
-    data = np.stack([img.data[0,...]                       for img in images])
-    head = [img.getHead()                         for img in images]
-    meta = [ismrmrd.Meta.deserialize(img.attribute_string) for img in images]
-
-    nSlices = int(images[-1].slice + 1)         # Slice is an index so we need to add 1
-    nPhases = int(len(images)/nSlices)          # Equal number of phases per slice
-
-    data = data.reshape(nSlices, nPhases, data.shape[1], data.shape[2], data.shape[3]) # slice, phase, z, y, x
-    data = data.transpose((2, 4, 3, 1, 0))                                             # z, x, y, phase, slice
-
-    def to_matrix(l, n):
-        return [l[i:i+n] for i in range(0, len(l), n)]
-
-    head = to_matrix(head, nPhases)
+    # (n_slice, n_phase, x, y) -> (x, y, n_phase, n_slice)
+    data = data.transpose((3, 2, 1, 0))
+    # Adding z-axis
+    data = data[np.newaxis, ...]
 
     # logging.info("Saving input to the network.")
     # io.savemat(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', 'input_to_network.mat'), {'input_net': data[0,:,:,:,:]})
@@ -268,4 +259,4 @@ def process_image(images, connection, config, metadata):
 
       logging.info("Completed Slice: %d", zz)
 
-    return outp_net, head
+    return outp_net
