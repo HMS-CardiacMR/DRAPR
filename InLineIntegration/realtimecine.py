@@ -18,6 +18,8 @@ from time import perf_counter
 from network_arch import Net
 from scipy import io
 
+import nufft
+
 debugFolder = "/tmp/share/debug"  # Folder for debug output files
 use_gpu = True                    # Enable/Disable GPU Use
 n_threads = 12                    # Set number of threads for PyTorch
@@ -48,6 +50,7 @@ def process(connection, config, metadata):
 
     # Continuously parse incoming data parsed from MRD messages
     imgGroup = []
+    kdataGroup = []
 
     try:
         for item in connection:
@@ -55,11 +58,23 @@ def process(connection, config, metadata):
             # Image data messages
             # ----------------------------------------------------------
             if isinstance(item, ismrmrd.Image):
-
                 imgGroup.append(item)
+
+            # ----------------------------------------------------------
+            # Raw k-space data
+            # ----------------------------------------------------------
+            elif isinstance(item, ismrmrd.Acquisition):
+                kdataGroup.append(item)
+
 
         if len(imgGroup) > 0:
             logging.info("Processing a group of images")
+            cine_movies, head = process_image(imgGroup, connection, config, metadata)
+
+        if len(kdataGroup) > 0:
+            logging.info("Processing a group of k-space data")
+            images = process_kspace(kdataGroup, connection, config, metadata)
+            logging.info("Processing pre-processed images")
             cine_movies, head = process_image(imgGroup, connection, config, metadata)
 
         # logging.info('Cine movies have shape: %s', str(cine_movies.shape))
@@ -119,6 +134,28 @@ def process(connection, config, metadata):
     finally:
         connection.send_close()
 
+def process_kspace(kspace, connection, config, metadata):
+
+    # Create folder, if necessary
+    if not os.path.exists(debugFolder):
+        os.makedirs(debugFolder)
+        logging.debug("Created folder " + debugFolder + " for debug output files")
+
+    
+    n_readout_points = kspace[-1].data.shape[1]
+    n_coils   = kspace[-1].data.shape[0]
+    # Following values are an index so we must increment by 1
+    n_slices  = kspace[-1].idx.slice + 1
+    n_frames  = kspace[-1].idx.phase + 1
+    n_lines   = kspace[-1].idx.kspace_encode_step_1 + 1
+
+    data = np.stack([sample.data for sample in kspace])             # (total_samples_collected, n_coils, n_readout_points)
+
+    data_reshaped = np.reshape(data, (n_lines,n_frames, n_slices, n_coils, n_readout_points), order='F')
+
+    data_transposed = data_reshaped.transpose((4, 0, 1, 2, 3))      # (n_readout_points, n_lines, n_frames, n_slices, n_coils)
+
+    image_recon_combined = nufft.NUFFT(data_transposed, device='cuda', remove_n_time_frames=frame_skip)
 
 def process_image(images, connection, config, metadata):
     # Create folder, if necessary
