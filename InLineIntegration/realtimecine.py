@@ -23,7 +23,6 @@ import nufft
 debugFolder = "/tmp/share/debug"  # Folder for debug output files
 use_gpu = True                    # Enable/Disable GPU Use
 n_threads = 12                    # Set number of threads for PyTorch
-frame_skip = 20                   # Frames to skip to reach steady state
 
 def process(connection, config, metadata):
     logging.info("Config: \n%s", config)
@@ -49,33 +48,21 @@ def process(connection, config, metadata):
         logging.info("Improperly formatted metadata: \n%s", metadata)
 
     # Continuously parse incoming data parsed from MRD messages
-    imgGroup = []
     kdataGroup = []
 
     try:
         for item in connection:
             # ----------------------------------------------------------
-            # Image data messages
-            # ----------------------------------------------------------
-            if isinstance(item, ismrmrd.Image):
-                imgGroup.append(item)
-
-            # ----------------------------------------------------------
             # Raw k-space data
             # ----------------------------------------------------------
-            elif isinstance(item, ismrmrd.Acquisition):
+            if isinstance(item, ismrmrd.Acquisition):
                 kdataGroup.append(item)
-
-
-        if len(imgGroup) > 0:
-            logging.info("Processing a group of images")
-            cine_movies, head = process_image(imgGroup, connection, config, metadata)
 
         if len(kdataGroup) > 0:
             logging.info("Processing a group of k-space data")
             images = process_kspace(kdataGroup, connection, config, metadata) # (n_slices, n_frames, x, y)
             logging.info("Processing pre-processed images")
-            cine_movies = process_image(images, connection, config, metadata) # (x, y, n_frames, n_slices)
+            cine_movies = process_image(images)                               # (x, y, n_frames, n_slices)
 
         logging.info('Cine movies have shape: %s', str(cine_movies.shape))
         # io.savemat(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', 'cine_movies.mat'), {'outp_net': cine_movies})
@@ -155,11 +142,13 @@ def process_kspace(kspace, connection, config, metadata):
 
     data_transposed = data_reshaped.transpose((4, 0, 1, 2, 3))      # (n_readout_points, n_lines, n_frames, n_slices, n_coils)
 
-    image_recon_combined = nufft.NUFFT(data_transposed, device='cuda', remove_n_time_frames=frame_skip)
+    remove_n_time_frames = 20 if data_transposed.shape[2] > 30 else 0
+
+    image_recon_combined = nufft.NUFFT(data_transposed, device='cuda:7', remove_n_time_frames=remove_n_time_frames)
 
     return image_recon_combined
 
-def process_image(images, connection, config, metadata):
+def process_image(images):
     # Create folder, if necessary
     if not os.path.exists(debugFolder):
         os.makedirs(debugFolder)
@@ -217,8 +206,8 @@ def process_image(images, connection, config, metadata):
         ## loading the trained model
         PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', 'model.py')
         net = Net()
-        device = torch.device("cuda:0")
-        net = nn.DataParallel(net, device_ids=[0])
+        device = torch.device("cuda:7")
+        net = nn.DataParallel(net, device_ids=[7])
         net.load_state_dict(torch.load(PATH))
         net = net.to(device)
         net.eval()
