@@ -155,7 +155,7 @@ def process_kspace(kspace, connection, config, metadata):
 
     data_transposed = data_reshaped.transpose((4, 0, 1, 2, 3))      # (n_readout_points, n_lines, n_frames, n_slices, n_coils)
 
-    image_recon_combined = nufft.NUFFT(data_transposed, device='cuda', remove_n_time_frames=frame_skip)
+    image_recon_combined = nufft.NUFFT_prototype(data_transposed, device='cuda', numpoints=2, remove_n_time_frames=frame_skip)
 
     return image_recon_combined
 
@@ -164,8 +164,6 @@ def process_image(images, connection, config, metadata):
     if not os.path.exists(debugFolder):
         os.makedirs(debugFolder)
         logging.debug("Created folder " + debugFolder + " for debug output files")
-
-    logging.debug("Processing data with %d images of type %s", len(images), ismrmrd.get_dtype_from_data_type(images[0].data_type))
 
     # (n_slice, n_phase, x, y) -> (x, y, n_phase, n_slice)
     data = data.transpose((3, 2, 1, 0))
