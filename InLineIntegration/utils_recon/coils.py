@@ -4,11 +4,8 @@ Utilities for coil sensivity maps, pre-whitening, etc
 import numpy as np
 from scipy import ndimage
 import torch
-from torchvision.transforms import GaussianBlur
 
 def calculate_csm_inati_iter_prototype(im):
-
-    blur = GaussianBlur(kernel_size=5, sigma=5)
 
     im = im[:,None]
     ncha = len(im)
@@ -26,7 +23,7 @@ def calculate_csm_inati_iter_prototype(im):
 
     coil_map = im * R[None, ...]
 
-    coil_map_conv = blur(coil_map)
+    coil_map_conv = coil_map
 
     D = coil_map_conv * torch.conj(coil_map_conv)
     R = D.sum(axis=0)
@@ -55,7 +52,6 @@ def calculate_csm_inati_iter_prototype(im):
     coil_map = coil_map[:, 0, :, :]
 
     return coil_map
-    
 
 def calculate_prewhitening(noise, scale_factor=1.0):
     '''Calculates the noise prewhitening matrix
