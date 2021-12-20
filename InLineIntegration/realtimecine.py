@@ -142,13 +142,9 @@ def process_kspace(kspace, connection, config, metadata):
 
     data_transposed = data_reshaped.transpose((4, 0, 1, 2, 3))      # (n_readout_points, n_lines, n_frames, n_slices, n_coils)
 
-<<<<<<< HEAD
-    image_recon_combined = nufft.NUFFT_prototype(data_transposed, device='cuda', numpoints=2, remove_n_time_frames=frame_skip)
-=======
     remove_n_time_frames = 20 if data_transposed.shape[2] > 30 else 0
 
-    image_recon_combined = nufft.NUFFT(data_transposed, device='cuda:7', remove_n_time_frames=remove_n_time_frames)
->>>>>>> 8d6dd27f9b5d779f5eda859d947125106f4a2bb2
+    image_recon_combined = nufft.NUFFT_prototype(data_transposed, device='cuda:7', numpoints=2, remove_n_time_frames=remove_n_time_frames)
 
     return image_recon_combined
 
