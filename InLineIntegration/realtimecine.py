@@ -23,7 +23,6 @@ import nufft
 debugFolder = "/tmp/share/debug"  # Folder for debug output files
 use_gpu = True                    # Enable/Disable GPU Use
 n_threads = 12                    # Set number of threads for PyTorch
-frame_skip = 20                   # Frames to skip to reach steady state
 
 def process(connection, config, metadata):
     logging.info("Config: \n%s", config)
@@ -49,35 +48,23 @@ def process(connection, config, metadata):
         logging.info("Improperly formatted metadata: \n%s", metadata)
 
     # Continuously parse incoming data parsed from MRD messages
-    imgGroup = []
     kdataGroup = []
 
     try:
         for item in connection:
             # ----------------------------------------------------------
-            # Image data messages
-            # ----------------------------------------------------------
-            if isinstance(item, ismrmrd.Image):
-                imgGroup.append(item)
-
-            # ----------------------------------------------------------
             # Raw k-space data
             # ----------------------------------------------------------
-            elif isinstance(item, ismrmrd.Acquisition):
+            if isinstance(item, ismrmrd.Acquisition):
                 kdataGroup.append(item)
-
-
-        if len(imgGroup) > 0:
-            logging.info("Processing a group of images")
-            cine_movies, head = process_image(imgGroup, connection, config, metadata)
 
         if len(kdataGroup) > 0:
             logging.info("Processing a group of k-space data")
-            images = process_kspace(kdataGroup, connection, config, metadata)
+            images = process_kspace(kdataGroup, connection, config, metadata) # (n_slices, n_frames, x, y)
             logging.info("Processing pre-processed images")
-            cine_movies = process_image(images, connection, config, metadata)
+            cine_movies = process_image(images)                               # (x, y, n_frames, n_slices)
 
-        # logging.info('Cine movies have shape: %s', str(cine_movies.shape))
+        logging.info('Cine movies have shape: %s', str(cine_movies.shape))
         # io.savemat(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', 'cine_movies.mat'), {'outp_net': cine_movies})
 
         for slice_index in range(cine_movies.shape[-1]):
@@ -88,44 +75,45 @@ def process(connection, config, metadata):
                 data *= 1000
                 data = data.astype(np.int16)
 
-                data = np.rot90(data, 3) # Rotate clockwise 90 degrees
+                data = np.flipud(data)
                 
                 # Format as ISMRMRD image data
                 image = ismrmrd.Image.from_array(data)
 
-                # # Set the header information
-                # tmpHead = head[slice_index][image_index]
-                # tmpHead.data_type = image.getHead().data_type
-                # tmpHead.image_index = image_index
-                # tmpHead.image_series_index = 0
-                # image.setHead(tmpHead)
+                # Set the header information
+                tmpHead = image.getHead()
+                tmpHead.slice = slice_index
+                tmpHead.phase = image_index
+                tmpHead.image_index = image_index
+                tmpHead.image_series_index = 0
+                image.setHead(tmpHead)
 
-                # # Set field of view
-                # image.field_of_view = (ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.x), 
-                #                         ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.y), 
-                #                         ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.z))
+                # Set field of view
+                image.field_of_view = (ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.x),
+                                        ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.y),
+                                        ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.z))
 
-                # # Create a copy of the original ISMRMRD Meta attributes and update
-                # tmpMeta = ismrmrd.Meta.deserialize(image.attribute_string)
-                # tmpMeta['DataRole']                       = 'Image' 
-                # tmpMeta['ImageProcessingHistory']         = ['PYTHON', 'REALTIMECINE']
-                # tmpMeta['SequenceDescriptionAdditional']  = 'FIRE'
-                # tmpMeta['WindowCenter']                   = '1500'
-                # tmpMeta['WindowWidth']                    = '4000'
+                # Create a copy of the original ISMRMRD Meta attributes and update
+                tmpMeta = ismrmrd.Meta.deserialize(image.attribute_string)
+                tmpMeta['DataRole']                       = 'Image'
+                tmpMeta['ImageProcessingHistory']         = ['PYTHON', 'REALTIMECINE']
+                tmpMeta['SequenceDescriptionAdditional']  = 'FIRE'
+                tmpMeta['WindowCenter']                   = '1500'
+                tmpMeta['WindowWidth']                    = '4000'
 
-                # # Add image orientation directions to MetaAttributes if not already present
-                # if tmpMeta.get('ImageRowDir') is None:
-                #     tmpMeta['ImageRowDir'] = ["{:.18f}".format(tmpHead.read_dir[0]), "{:.18f}".format(tmpHead.read_dir[1]), "{:.18f}".format(tmpHead.read_dir[2])]
+                # Add image orientation directions to MetaAttributes if not already present
+                if tmpMeta.get('ImageRowDir') is None:
+                    tmpMeta['ImageRowDir'] = ["{:.18f}".format(tmpHead.read_dir[0]), "{:.18f}".format(tmpHead.read_dir[1]), "{:.18f}".format(tmpHead.read_dir[2])]
 
-                # if tmpMeta.get('ImageColumnDir') is None:
-                #     tmpMeta['ImageColumnDir'] = ["{:.18f}".format(tmpHead.phase_dir[0]), "{:.18f}".format(tmpHead.phase_dir[1]), "{:.18f}".format(tmpHead.phase_dir[2])]
+                if tmpMeta.get('ImageColumnDir') is None:
+                    tmpMeta['ImageColumnDir'] = ["{:.18f}".format(tmpHead.phase_dir[0]), "{:.18f}".format(tmpHead.phase_dir[1]), "{:.18f}".format(tmpHead.phase_dir[2])]
 
-                # metaXml = tmpMeta.serialize()
+                metaXml = tmpMeta.serialize()
 
-                # logging.debug("Image MetaAttributes: %s", xml.dom.minidom.parseString(metaXml).toprettyxml())
-                # logging.debug("Image data has %d elements", image.data.size)
+                logging.debug("Image MetaAttributes: %s", xml.dom.minidom.parseString(metaXml).toprettyxml())
+                logging.debug("Image data has %d elements", image.data.size)
 
-                # image.attribute_string = metaXml
+                image.attribute_string = metaXml
 
                 # Send image back to the client
                 logging.debug("Sending images to client")
@@ -141,7 +129,6 @@ def process_kspace(kspace, connection, config, metadata):
         os.makedirs(debugFolder)
         logging.debug("Created folder " + debugFolder + " for debug output files")
 
-    
     n_readout_points = kspace[-1].data.shape[1]
     n_coils   = kspace[-1].data.shape[0]
     # Following values are an index so we must increment by 1
@@ -155,18 +142,24 @@ def process_kspace(kspace, connection, config, metadata):
 
     data_transposed = data_reshaped.transpose((4, 0, 1, 2, 3))      # (n_readout_points, n_lines, n_frames, n_slices, n_coils)
 
+<<<<<<< HEAD
     image_recon_combined = nufft.NUFFT_prototype(data_transposed, device='cuda', numpoints=2, remove_n_time_frames=frame_skip)
+=======
+    remove_n_time_frames = 20 if data_transposed.shape[2] > 30 else 0
+
+    image_recon_combined = nufft.NUFFT(data_transposed, device='cuda:7', remove_n_time_frames=remove_n_time_frames)
+>>>>>>> 8d6dd27f9b5d779f5eda859d947125106f4a2bb2
 
     return image_recon_combined
 
-def process_image(images, connection, config, metadata):
+def process_image(images):
     # Create folder, if necessary
     if not os.path.exists(debugFolder):
         os.makedirs(debugFolder)
         logging.debug("Created folder " + debugFolder + " for debug output files")
 
     # (n_slice, n_phase, x, y) -> (x, y, n_phase, n_slice)
-    data = data.transpose((3, 2, 1, 0))
+    data = images.transpose((3, 2, 1, 0))
     # Adding z-axis
     data = data[np.newaxis, ...]
 
@@ -183,7 +176,7 @@ def process_image(images, connection, config, metadata):
     endx1 = np.floor(data.shape[1] / 2 + crop_nx / 2).astype(int)
     starty1 = np.floor(data.shape[2] / 2 - crop_nx / 2).astype(int)
     endy1 = np.floor(data.shape[2] / 2 + crop_nx / 2).astype(int)
-    mat_zp = data[:, startx1:endx1, starty1:endy1, frame_skip:, :]
+    mat_zp = data[:, startx1:endx1, starty1:endy1, :, :]
 
     # Create empty output arrays
     outp_net = np.zeros([mat_zp.shape[1], mat_zp.shape[2], mat_zp.shape[3], mat_zp.shape[4]], dtype='Complex32')
@@ -195,7 +188,7 @@ def process_image(images, connection, config, metadata):
       endx1 = np.floor(data.shape[1] / 2 + crop_nx / 2).astype(int)
       starty1 = np.floor(data.shape[2] / 2 - crop_nx / 2).astype(int)
       endy1 = np.floor(data.shape[2] / 2 + crop_nx / 2).astype(int)
-      mat_zp = (data[:, startx1:endx1, starty1:endy1, frame_skip:, zz])
+      mat_zp = (data[:, startx1:endx1, starty1:endy1, :, zz])
 
       # Apply normalization
       startx = np.floor(mat_zp.shape[1] / 2 - normalize_window / 2).astype(int)
@@ -217,8 +210,8 @@ def process_image(images, connection, config, metadata):
         ## loading the trained model
         PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', 'model.py')
         net = Net()
-        device = torch.device("cuda:0")
-        net = nn.DataParallel(net, device_ids=[0])
+        device = torch.device("cuda:7")
+        net = nn.DataParallel(net, device_ids=[7])
         net.load_state_dict(torch.load(PATH))
         net = net.to(device)
         net.eval()
