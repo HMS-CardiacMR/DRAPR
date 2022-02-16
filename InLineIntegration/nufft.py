@@ -1,15 +1,18 @@
 import torch
 import numpy as np
 import torchkbnufft as tkbn
+import time
+import logging
 
 from utils_recon import coils, radial_to_cartesian
 
 def NUFFT_prototype(kspace_data, device, num_threads=100, numpoints=4, b_niter=1, remove_n_time_frames=0):
-  logging.info("Running NUFFT")
-  
+
+    logging.info("Running NUFFT")
+
     kspace_data = kspace_data[:,:,remove_n_time_frames:]
-    dtype = kspace_data.dtype 
-        
+    dtype = kspace_data.dtype
+
     n_readout_points, n_lines, n_frames, n_slices, n_coils = kspace_data.shape
 
     im_size   = (n_readout_points, n_readout_points)
@@ -21,12 +24,13 @@ def NUFFT_prototype(kspace_data, device, num_threads=100, numpoints=4, b_niter=1
     # apply ramp filter W for density compensation
     W = (np.abs(Kx+1j*Ky) / np.abs(Kx+1j*Ky).max())
     kspace_data *= W[...,None,None]
-  
+
     if device == 'cpu': torch.set_num_threads(num_threads)
-  
-  logging.info("Coordinates evaluated")
+
+    logging.info("Coordinates evaluated")
+
     with torch.no_grad():
-    
+ 
         # Kx, Ky shape = n_frames, n_readout_points * n_lines
         # ktraj shape = n_frames, 2, n_readout_points * n_lines
         Kx    = Kx.reshape((-1,n_frames)).T
@@ -38,21 +42,24 @@ def NUFFT_prototype(kspace_data, device, num_threads=100, numpoints=4, b_niter=1
         kdata = np.stack(kdata,0)
         kdata = torch.tensor(kdata).to(device)
 
-    logging.info("Setting KbNufftAdjoint")
+        logging.info("Setting KbNufftAdjoint")
+
         adjnufft_ob = tkbn.KbNufftAdjoint(im_size=im_size, grid_size=grid_size, numpoints=numpoints).to(device)
         adjnufft_ob = adjnufft_ob.to(kdata)
 
         # initialize device
-    logging.info("Initialize device")
+        logging.info("Initialize device")
         _ = adjnufft_ob(kdata[0,0].unsqueeze(0), ktraj[0].unsqueeze(0))
 
         image_recon_combined = np.zeros((n_slices,n_frames,n_readout_points,n_readout_points), dtype=dtype)
 
         start_loop = time.time()
+
         for z_slice in range(n_slices):
-      logging.info("Running slice %d"%(z_slice))
+
+            logging.info("Running slice %d"%(z_slice))
             
-      # do actual nufft
+            # do actual nufft
             image_recon = adjnufft_ob(kdata[z_slice], ktraj)
 
             smaps  = coils.calculate_csm_inati_iter_prototype(image_recon.mean(axis=0))
@@ -60,7 +67,8 @@ def NUFFT_prototype(kspace_data, device, num_threads=100, numpoints=4, b_niter=1
 
             image_recon_combined[z_slice] += torch.sum(image_recon * smaps[None].conj(), axis=1).cpu().numpy()
         
-    logging.info("Finished NUFFT")
+        logging.info("Finished NUFFT")
+
         return image_recon_combined
         
 
