@@ -21,7 +21,7 @@ from scipy import io
 import nufft
 
 debugFolder = "/tmp/share/debug"  # Folder for debug output files
-use_gpu = True                    # Enable/Disable GPU Use
+use_gpu = False                    # Enable/Disable GPU Use
 n_threads = 12                    # Set number of threads for PyTorch
 
 def process(connection, config, metadata):
@@ -118,6 +118,32 @@ def process(connection, config, metadata):
                 # Send image back to the client
                 logging.debug("Sending images to client")
                 connection.send_image(image)
+
+        fig, ax = plt.subplots(1,2,figsize=(10, 5)) # this is imp for sizing
+        # plot
+        ax[0].imshow(cine_movies[..., 0, 0], cmap='gray', interpolation='none')
+        ax[1].plot([3,5,4,3,2,7,9,4,3,2,4])
+        # get image as np.array
+        canvas = plt.gca().figure.canvas
+        canvas.draw()
+        data  = np.frombuffer(canvas.tostring_rgb(), dtype=np.uint8)
+        image = data.reshape(canvas.get_width_height()[::-1] + (3,))
+        # Convert to ismrmr format
+        image_ismrmrd = ismrmrd.Image.from_array(image)
+        # Set the header information
+        tmpHead = image_ismrmrd.getHead()
+        tmpHead.slice = slice_index + 1
+        tmpHead.phase = 0
+        tmpHead.image_index = 0
+        tmpHead.image_series_index = 0
+        image_ismrmrd.setHead(tmpHead)
+
+        # Set field of view
+        image_ismrmrd.field_of_view = (ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.x),
+                                    ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.y),
+                                    ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.z))
+        logging.debug("Sending matplotlib image to client")
+        connection.send_image(image_ismrmrd)
 
     finally:
         connection.send_close()
