@@ -134,30 +134,24 @@ class Net(nn.Module):
 
         return output
 
-with torch.no_grad():
+
+
+
+from . import ProspectiveRadialSaveConcatV4
+
+def run_DL(main_file, SubFile, device):
+
     ## loading the trained model
-    PATH = "./models/model.py"
+    PATH = "/mnt/alp/Users/Manuel/code/pyCMR/dl/models/model.py"
     net = Net()
-    device2 = torch.device("cuda:4")
-    net = nn.DataParallel(net, device_ids=[4, 5])
     net.load_state_dict(torch.load(PATH))
-    net.to(device2)
+    net.to(device)
     net.eval()
 
-    import os
-    import glob
-    import gc
-    import ProspectiveRadialSaveConcatV4
+    # Example   
+    #main_file = '/mnt/alp/Research Data Sets/ExerciseRealTimeCineDL_study2/no_bike/twix_recons/'
+    #SubFile = "2021_12_20_BRSTM"
 
-    # /home/salah/venv/RealTimeCine/bin/activate
-    main_file = '/mnt/alp/Research Data Sets/ExerciseRealTimeCineDL_study2/main/twix_recons/'
-    main_file = '/mnt/alp/Research Data Sets/RadialGatedDL/phantoms/twix_recons/'
+    data_images_GPU = ProspectiveRadialSaveConcatV4.Save_Cases(main_file, SubFile, normalize_window = 48, Crop_nx = 144, net2 = net, device = device2)
 
-    for SubFilePath in glob.glob(os.path.join(main_file, '*')):
-        #if os.path.basename(SubFilePath) not in ['2021_07_22_CLCHM', '2021_12_09_PERUM']: continue
-        data_images_GPU = ProspectiveRadialSaveConcatV4.Save_Cases(main_file, os.path.basename(SubFilePath), normalize_window = 48, Crop_nx = 144, net2 = net, device = device2)
-        del data_images_GPU
-        gc.collect()
-
-
-        
+    

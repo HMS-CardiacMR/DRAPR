@@ -21,7 +21,7 @@ import time
 class Save_Cases(object):
 
     def __init__(self, main_file,SubFile,normalize_window = 48,Crop_nx = 144,net2 = None,device = None):
-        self.search_path_zp = main_file + SubFile + "/recon_nufft/"
+        self.search_path_zp = main_file + SubFile + "/gridded_data/"
         # self.search_path_rc = main_file + SubFile + "/NuFFT_RC/"
         self.search_path_save_NET = main_file + SubFile + "/nn_output/"
         # self.search_path_save_RC = main_file + SubFile + "/NuFFT_RC_saving/"
@@ -40,7 +40,7 @@ class Save_Cases(object):
             print("Directory ", self.search_path_save_NET, " Created ")
         except FileExistsError:
             print("Directory ", self.search_path_save_NET, " already exists")
-    
+
         # try:
         #     # Create target Directory
         #     os.makedirs(self.search_path_save_RC)
@@ -58,16 +58,12 @@ class Save_Cases(object):
         # Loading gridded data files to be processed by the network
         ListofFiles_zp = os.listdir(self.search_path_zp)
         ListofFiles_zp = [x for x in ListofFiles_zp if os.path.isfile(os.path.join(self.search_path_zp, x))]
-        ListofFiles_zp = [x for x in ListofFiles_zp if not os.path.isfile(str(self.search_path_save_NET + x))]
-
         print('List of files:', ListofFiles_zp)
 
         # Loop through each file
         start_file_index = 0
         ns = len(ListofFiles_zp)
 
-        if ns == 0: return None, None, None
-        
         for jj in range(start_file_index, ns):
 
             # Record start time
@@ -76,8 +72,6 @@ class Save_Cases(object):
             # Select filename 
             ListofFiles_zp_string = str(ListofFiles_zp[jj])
             filename_zp = ListofFiles_zp_string
-
-
             print('Processing File:', filename_zp)
 
             # Build path to file
@@ -189,7 +183,7 @@ class Save_Cases(object):
 
             # Save output of network as .mat files
             from scipy import io
-            io.savemat(str(self.search_path_save_NET + filename_zp), {'nn_output': outp_net})
+            io.savemat(str(self.search_path_save_NET + filename_zp), {'outp_net': outp_net})
             # io.savemat(str(self.search_path_save_ZF + filename_zp), {'input_all': input_all})
             # io.savemat(str(self.search_path_save_RC + filename_zp), {'outp_all': outp_all})
 
