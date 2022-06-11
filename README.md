@@ -1,5 +1,9 @@
 # Real Time Cine
 
+<img src='vids/video_3.gif' align="right" width=440>
+
+<br><br><br><br>
+
 **Purpose**: To develop and evaluate a free-breathing and ECG-free real-time cine with deep learning (DL)-based radial acceleration for exercise CMR.
 
 **Method**: We implemented a 3D (2D+time) convolutional neural network to suppress streaking artifacts from undersampled radial cine images. We trained the network using synthetic real-time radial cine images simulated using ECG-gated segmented Cartesian k-space data, which was acquired from 503 patients during breath-hold and at rest. Further, we implemented a prototype real-time radial sequence with acceleration rate = 12 on a 3T scanner, and used it to collect cine images with inline DL reconstruction whose total reconstruction time was 16.6 ms per frame. We evaluated the performance of the proposed approach by initially recruiting 9 healthy subjects in whom only rest images were collected. Subsequently, we recruited 14 subjects who participated in an exercise CMR imaging protocol in which both rest and post-exercise images were collected, including 8 patients with suspected coronary artery disease. Exercise was done using a CMR-compatible supine cycle ergometer positioned on the MR table.
