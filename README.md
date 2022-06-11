@@ -1,6 +1,6 @@
 # Real Time Cine
 
-<img src='vids/video_1.gif' align="right" width=440>
+<img src='vids/video_1_lowres.gif' align="right" width=440>
 
 <br><br><br><br>
 
