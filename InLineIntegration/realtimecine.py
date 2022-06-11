@@ -18,7 +18,7 @@ from time import perf_counter
 from network_arch import Net
 from scipy import io
 
-import nufft
+#import nufft
 
 debugFolder = "/tmp/share/debug"  # Folder for debug output files
 use_gpu = False                    # Enable/Disable GPU Use
@@ -90,8 +90,8 @@ def process(connection, config, metadata):
 
                 # Set field of view
                 image.field_of_view = (ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.x),
-                                        ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.y),
-                                        ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.z))
+                                       ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.y),
+                                       ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.z))
 
                 # Create a copy of the original ISMRMRD Meta attributes and update
                 tmpMeta = ismrmrd.Meta.deserialize(image.attribute_string)
@@ -131,59 +131,23 @@ def process_kspace(kspace, connection, config, metadata):
         os.makedirs(debugFolder)
         logging.debug("Created folder " + debugFolder + " for debug output files")
 
-    print('processing k-space', kspace[-1].data.shape)
+    n_readout_points = kspace[-1].data.shape[1]
+    n_coils   = kspace[-1].data.shape[0]
+    # Following values are an index so we must increment by 1
+    n_slices  = kspace[-1].idx.slice + 1
+    n_frames  = kspace[-1].idx.phase + 1
+    n_lines   = kspace[-1].idx.kspace_encode_step_1 + 1
 
+    data = np.stack([sample.data for sample in kspace])             # (total_samples_collected, n_coils, n_readout_points)
 
-    #n_readout_points = kspace[-1].data.shape[1]
-    #n_coils   = kspace[-1].data.shape[0]
-    ## Following values are an index so we must increment by 1
-    #n_slices  = kspace[-1].idx.slice + 1
-    #n_frames  = kspace[-1].idx.phase + 1
-    #n_lines   = kspace[-1].idx.kspace_encode_step_1 + 1
+    data_reshaped = np.reshape(data, (n_lines,n_frames, n_slices, n_coils, n_readout_points), order='F')
 
-    kspace_data = np.stack([sample.data for sample in kspace])             # (total_samples_collected, n_coils, n_readout_points)
+    data_transposed = data_reshaped.transpose((4, 0, 1, 2, 3))      # (n_readout_points, n_lines, n_frames, n_slices, n_coils)
 
-    np.save('/home/mmorales/main_python/kspace_data', kspace_data)    
-    print(kspace_data.shape)
+    remove_n_time_frames = 20 if data_transposed.shape[2] > 30 else 0
 
-
-    n_measures = len(kspace_data)
-    for idx in np.arange(1, n_measures, 4):
-        print(idx, kspace[idx].idx.slice)
-
-    kspace_data_new = {0:[], 1:[], 2:[]}
-    for idx in range(n_measures):
-        if idx % 4 != 0:
-            slice_id = kspace[idx].idx.slice
-            kspace_data_new[slice_id] += [kspace_data[idx]]
-            print(idx, slice_id)
-        
-        # (n_slices, n_lines, n_coils, n_readout_points)
-    kspace_data = np.stack((kspace_data_new[0], 
-                            kspace_data_new[1], 
-                            kspace_data_new[2]))
-
-    n_readout_points = kspace_data.shape[3]
-    n_coils          = kspace_data.shape[2]
-    n_lines          = kspace_data.shape[1]
-    n_slices         = kspace_data.shape[0]
-
-    lines_per_frame = 12
-
-    print(kspace_data.shape)
-    kspace_data = np.reshape(kspace_data, (n_slices, n_lines, n_coils, n_readout_points), order='F')
-    kspace_data = kspace_data.transpose((3, 1, 0, 2))
-    print(kspace_data.shape)
-    kspace_data = kspace_data[:, :lines_per_frame*(n_lines//lines_per_frame)]
-    kspace_data = kspace_data.reshape((n_readout_points, lines_per_frame, n_lines//lines_per_frame, n_slices, n_coils), order='F')
-        
-    print(kspace_data.shape)
-        
-    #remove_n_time_frames = 20 if data_transposed.shape[2] > 30 else 0
-    remove_n_time_frames = 0
-    image_recon_combined = nufft.NUFFT_prototype(kspace_data, device='cuda:7', numpoints=2, remove_n_time_frames=remove_n_time_frames)
-
-    print(image_recon_combined.shape)
+    image_recon_combined = np.zeros((n_slices, n_frames, n_readout_points, n_readout_points))# nufft.NUFFT_prototype(data_transposed, device='cuda:7', numpoints=2, remove_n_time_frames=remove_n_time_frames)
+	
     return image_recon_combined
 
 def process_image(images):
@@ -272,10 +236,11 @@ def process_image(images):
         # Feed data into the network
         with torch.no_grad():
           inputs = torch.from_numpy(inpt)
-          inputs = inputs.to(device)
-          outputs = net(inputs)
-          outputs = outputs.cpu()
-          outputs = outputs.data.numpy()
+          #inputs = inputs.to(device)
+          #outputs = net(inputs)
+          #outputs = outputs.cpu()
+          outputs = inputs#outputs.data.numpy()
+
 
       # Selecting subset of data to save
       outputs2 = np.abs(outputs[:, :, 0:mat_zp.shape[1], :, :] + 1j * outputs[:, :,mat_zp.shape[1]:mat_zp.shape[1]*2, :, :])
