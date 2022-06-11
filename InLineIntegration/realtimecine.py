@@ -119,31 +119,7 @@ def process(connection, config, metadata):
                 logging.debug("Sending images to client")
                 connection.send_image(image)
 
-        fig, ax = plt.subplots(1,2,figsize=(10, 5)) # this is imp for sizing
-        # plot
-        ax[0].imshow(cine_movies[..., 0, 0], cmap='gray', interpolation='none')
-        ax[1].plot([3,5,4,3,2,7,9,4,3,2,4])
-        # get image as np.array
-        canvas = plt.gca().figure.canvas
-        canvas.draw()
-        data  = np.frombuffer(canvas.tostring_rgb(), dtype=np.uint8)
-        image = data.reshape(canvas.get_width_height()[::-1] + (3,))
-        # Convert to ismrmr format
-        image_ismrmrd = ismrmrd.Image.from_array(image)
-        # Set the header information
-        tmpHead = image_ismrmrd.getHead()
-        tmpHead.slice = slice_index + 1
-        tmpHead.phase = 0
-        tmpHead.image_index = 0
-        tmpHead.image_series_index = 0
-        image_ismrmrd.setHead(tmpHead)
-
-        # Set field of view
-        image_ismrmrd.field_of_view = (ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.x),
-                                    ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.y),
-                                    ctypes.c_float(metadata.encoding[0].reconSpace.fieldOfView_mm.z))
-        logging.debug("Sending matplotlib image to client")
-        connection.send_image(image_ismrmrd)
+        
 
     finally:
         connection.send_close()
@@ -155,23 +131,59 @@ def process_kspace(kspace, connection, config, metadata):
         os.makedirs(debugFolder)
         logging.debug("Created folder " + debugFolder + " for debug output files")
 
-    n_readout_points = kspace[-1].data.shape[1]
-    n_coils   = kspace[-1].data.shape[0]
-    # Following values are an index so we must increment by 1
-    n_slices  = kspace[-1].idx.slice + 1
-    n_frames  = kspace[-1].idx.phase + 1
-    n_lines   = kspace[-1].idx.kspace_encode_step_1 + 1
+    print('processing k-space', kspace[-1].data.shape)
 
-    data = np.stack([sample.data for sample in kspace])             # (total_samples_collected, n_coils, n_readout_points)
 
-    data_reshaped = np.reshape(data, (n_lines,n_frames, n_slices, n_coils, n_readout_points), order='F')
+    #n_readout_points = kspace[-1].data.shape[1]
+    #n_coils   = kspace[-1].data.shape[0]
+    ## Following values are an index so we must increment by 1
+    #n_slices  = kspace[-1].idx.slice + 1
+    #n_frames  = kspace[-1].idx.phase + 1
+    #n_lines   = kspace[-1].idx.kspace_encode_step_1 + 1
 
-    data_transposed = data_reshaped.transpose((4, 0, 1, 2, 3))      # (n_readout_points, n_lines, n_frames, n_slices, n_coils)
+    kspace_data = np.stack([sample.data for sample in kspace])             # (total_samples_collected, n_coils, n_readout_points)
 
-    remove_n_time_frames = 20 if data_transposed.shape[2] > 30 else 0
+    np.save('/home/mmorales/main_python/kspace_data', kspace_data)    
+    print(kspace_data.shape)
 
-    image_recon_combined = nufft.NUFFT_prototype(data_transposed, device='cuda:7', numpoints=2, remove_n_time_frames=remove_n_time_frames)
 
+    n_measures = len(kspace_data)
+    for idx in np.arange(1, n_measures, 4):
+        print(idx, kspace[idx].idx.slice)
+
+    kspace_data_new = {0:[], 1:[], 2:[]}
+    for idx in range(n_measures):
+        if idx % 4 != 0:
+            slice_id = kspace[idx].idx.slice
+            kspace_data_new[slice_id] += [kspace_data[idx]]
+            print(idx, slice_id)
+        
+        # (n_slices, n_lines, n_coils, n_readout_points)
+    kspace_data = np.stack((kspace_data_new[0], 
+                            kspace_data_new[1], 
+                            kspace_data_new[2]))
+
+    n_readout_points = kspace_data.shape[3]
+    n_coils          = kspace_data.shape[2]
+    n_lines          = kspace_data.shape[1]
+    n_slices         = kspace_data.shape[0]
+
+    lines_per_frame = 12
+
+    print(kspace_data.shape)
+    kspace_data = np.reshape(kspace_data, (n_slices, n_lines, n_coils, n_readout_points), order='F')
+    kspace_data = kspace_data.transpose((3, 1, 0, 2))
+    print(kspace_data.shape)
+    kspace_data = kspace_data[:, :lines_per_frame*(n_lines//lines_per_frame)]
+    kspace_data = kspace_data.reshape((n_readout_points, lines_per_frame, n_lines//lines_per_frame, n_slices, n_coils), order='F')
+        
+    print(kspace_data.shape)
+        
+    #remove_n_time_frames = 20 if data_transposed.shape[2] > 30 else 0
+    remove_n_time_frames = 0
+    image_recon_combined = nufft.NUFFT_prototype(kspace_data, device='cuda:7', numpoints=2, remove_n_time_frames=remove_n_time_frames)
+
+    print(image_recon_combined.shape)
     return image_recon_combined
 
 def process_image(images):
