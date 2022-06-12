@@ -2,7 +2,7 @@
 
 <br><br><br><br><br><br>
 
-# Reconstruction of Golden Angle Radial MRI 
+# Deep-Learning Radial Acceleration with Parallel Reconstruction (DRAPR)
 
 **Purpose**: To develop and evaluate a free-breathing and ECG-free real-time cine with deep learning (DL)-based radial acceleration for exercise CMR.
 
