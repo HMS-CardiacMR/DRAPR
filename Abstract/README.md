@@ -20,4 +20,4 @@
 
 ## Imaging at Rest
 
-<img src='vids/video_1_lowres.gif' align="center" width=740>
+<img src='../vids/video_1_lowres.gif' align="center" width=640>
