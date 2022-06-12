@@ -201,6 +201,7 @@ def process_image(images):
       inpt[0, 0, 0:mat_zp.shape[2], :, :] = np.real(mat_zp[0, :, :, :])
       inpt[0, 0, mat_zp.shape[2]:mat_zp.shape[2]*2, :, :] = np.imag(mat_zp[0, :, :, :])
 
+      
       torch.set_num_threads(n_threads)
 
       if use_gpu:

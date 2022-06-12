@@ -78,7 +78,7 @@ def NUFFT_prototype(kspace_data, hdr, device, num_threads=100, numpoints=4, b_ni
 
     # Kx, Ky shape = n_readout_points, n_lines, n_frames
     Kx, Ky = radial_to_cartesian.radial_to_cartesian_slice_coordinates(hdr, kspace_data.shape[:3], pi_norm=True,
-                                                                         remove_n_time_frames=remove_n_time_frames, uniform=True)
+                                                                         remove_n_time_frames=remove_n_time_frames, uniform=False)
 
     # apply ramp filter W for density compensation
     W = (np.abs(Kx+1j*Ky) / np.abs(Kx+1j*Ky).max())
