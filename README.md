@@ -1,4 +1,4 @@
-# Real Time Cine
+# Reconstruction of Golden Angle Radial MRI 
 
 <img src='vids/video_1_lowres.gif' align="right" width=440>
 
