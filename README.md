@@ -2,7 +2,7 @@
 
 <img src='vids/video_1_lowres.gif' align="right" width=440>
 
-<br><br><br><br>
+<br><br><br><br><br><br>
 
 **Purpose**: To develop and evaluate a free-breathing and ECG-free real-time cine with deep learning (DL)-based radial acceleration for exercise CMR.
 
