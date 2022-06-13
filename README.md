@@ -21,4 +21,4 @@ Our code may be used to reconstruct raw k-space data offline. A Jupyter [noteboo
 
 ## InLineIntegration
 
-<img src="vids/figure_2.png" width="100" height="100">
+<img src="vids/figure_2.png" width="400">
