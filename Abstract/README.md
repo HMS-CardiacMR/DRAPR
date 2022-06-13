@@ -4,8 +4,8 @@
 # Table of Contents 
     
 - [Abstract](#Abstract)
-- [Imaging at Rest](#Imaging-at-Rest)
-
+- [Comparison to GRASP](#Comparison-to-GRASP)
+- [Application to Exercise-CMR](Application-to-Exercise-CMR)
 
 ## Abstract
 
@@ -18,6 +18,11 @@
 **Conclusions**: Our feasibility study demonstrated the potential of inline real-time cine with DL-based radial acceleration for Ex-CMR.
 
 
-## Imaging at Rest
+## Comparison to GRASP
 
-<img src='../vids/video_1_lowres.gif' align="center" width=640>
+<img src='../vids/video_1_lowres.gif' align="left" width=640>
+
+
+## Application to Exercise-CMR
+
+<img src='../vids/video_1_lowres.gif' align="left" width=640>

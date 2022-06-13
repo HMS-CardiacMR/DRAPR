@@ -19,3 +19,6 @@
 Our code may be used to reconstruct raw k-space data offline. A Jupyter [notebook](https://github.com/HMS-CardiacMR/RealTimeCine/blob/main/notebooks/tutorial_basic.ipynb) tutorial is provided to demonstrate how to use our code. 
 
 
+## InLineIntegration
+
+<img src="vids/figure_2.png" width="100" height="100">
