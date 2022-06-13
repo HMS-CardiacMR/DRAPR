@@ -8,7 +8,7 @@
 **DRAPR: Deep-Learning Radial Acceleration with Parallel Reconstruction**  
 
 # Table of Contents 
-- [OffLineIntegration](#Getting-Started)
+- [OffLineIntegration](#OffLineIntegration)
 - [InLineIntegration](#InLineIntegration)
 - [Publications](#Publications)
 
