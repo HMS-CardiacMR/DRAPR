@@ -5,7 +5,7 @@
     
 - [Abstract](#Abstract)
 - [Comparison to GRASP](#Comparison-to-GRASP)
-- [Application to Exercise-CMR](Application-to-Exercise-CMR)
+- [Application to Exercise-CMR](#Application-to-Exercise-CMR)
 
 ## Abstract
 
@@ -25,5 +25,6 @@
 <br><br><br><br><br><br><br><br><br><br><br><br>
 
 ## Application to Exercise CMR
+
 
 <img src='../vids/video_3_lowres.gif' align="left" width=640>
