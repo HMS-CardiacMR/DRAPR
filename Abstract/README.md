@@ -25,4 +25,4 @@
 
 ## Application to Exercise-CMR
 
-<img src='../vids/video_1_lowres.gif' align="left" width=640>
+<img src='../vids/video_3_lowres.gif' align="left" width=640>
