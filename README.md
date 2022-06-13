@@ -12,6 +12,7 @@
 # Table of Contents 
 - [OffLineIntegration](#Getting-Started)
 - [InLineIntegration](#InLineIntegration)
+- [Publications](#Publications)
 
 ## OffLineIntegration
 
@@ -39,3 +40,9 @@ You will then see the following message appear in your console:
 
 This indicates the FIRE is running and will process any data sent to it via port 9002.
 
+## Publications
+
+- An Inline Deep Learning Based Free-Breathing ECG-Free Cine for Exercise CMR
+
+- Radial perfusion cardiac magnetic resonance imaging using deep learning image reconstruction ([ISMRM22](https://submissions.mirasmart.com/ISMRM2022/Itinerary/ConferenceMatrixEventDetail.aspx?ses=G-169)) 
+    - Salah Assana, Manuel Morales, Kei Nakata, Eiryu Sai, Amine Amyar, Hassan Haji-Valizadeh, and Reza Nezafat
