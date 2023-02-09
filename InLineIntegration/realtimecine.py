@@ -18,10 +18,10 @@ from time import perf_counter
 from network_arch import Net
 from scipy import io
 
-#import nufft
+import nufft
 
 debugFolder = "/tmp/share/debug"  # Folder for debug output files
-use_gpu = False                    # Enable/Disable GPU Use
+use_gpu = True                    # Enable/Disable GPU Use
 n_threads = 12                    # Set number of threads for PyTorch
 
 def process(connection, config, metadata):
@@ -146,7 +146,7 @@ def process_kspace(kspace, connection, config, metadata):
 
     remove_n_time_frames = 20 if data_transposed.shape[2] > 30 else 0
 
-    image_recon_combined = np.zeros((n_slices, n_frames, n_readout_points, n_readout_points))# nufft.NUFFT_prototype(data_transposed, device='cuda:7', numpoints=2, remove_n_time_frames=remove_n_time_frames)
+    image_recon_combined = nufft.NUFFT_prototype(data_transposed, device='cuda:7', numpoints=6, b_niter=5, remove_n_time_frames=remove_n_time_frames)
 	
     return image_recon_combined
 
@@ -237,10 +237,10 @@ def process_image(images):
         # Feed data into the network
         with torch.no_grad():
           inputs = torch.from_numpy(inpt)
-          #inputs = inputs.to(device)
-          #outputs = net(inputs)
-          #outputs = outputs.cpu()
-          outputs = inputs#outputs.data.numpy()
+          inputs = inputs.to(device)
+          outputs = net(inputs)
+          outputs = outputs.cpu()
+          outputs = outputs.data.numpy()
 
 
       # Selecting subset of data to save

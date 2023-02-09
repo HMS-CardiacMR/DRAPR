@@ -8,7 +8,7 @@ import sys
 import os
 
 defaults = {
-    'host':           '0.0.0.0',
+    'host':           '10.35.73.65',
     'port':           9002,
     'savedataFolder': '/tmp/share/saved_data'
 }

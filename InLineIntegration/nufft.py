@@ -19,7 +19,7 @@ def NUFFT_prototype(kspace_data, device, num_threads=100, numpoints=4, b_niter=1
     grid_size = (n_readout_points, n_readout_points)
 
     # Kx, Ky shape = n_readout_points, n_lines, n_frames
-    Kx, Ky = radial_to_cartesian.radial_to_cartesian_slice_coordinates(kspace_data.shape[:3], N=1, pi_norm=True, remove_n_time_frames=remove_n_time_frames)
+    Kx, Ky = radial_to_cartesian.radial_to_cartesian_slice_coordinates(kspace_data.shape[:3], N=5, pi_norm=True, remove_n_time_frames=remove_n_time_frames)
 
     # apply ramp filter W for density compensation
     W = (np.abs(Kx+1j*Ky) / np.abs(Kx+1j*Ky).max())
@@ -62,7 +62,7 @@ def NUFFT_prototype(kspace_data, device, num_threads=100, numpoints=4, b_niter=1
             # do actual nufft
             image_recon = adjnufft_ob(kdata[z_slice], ktraj)
 
-            smaps  = coils.calculate_csm_inati_iter_prototype(image_recon.mean(axis=0))
+            smaps  = coils.calculate_csm_inati_iter_prototype(image_recon.mean(axis=0), niter=b_niter)
             smaps /= torch.abs(smaps).max()
 
             image_recon_combined[z_slice] += torch.sum(image_recon * smaps[None].conj(), axis=1).cpu().numpy()

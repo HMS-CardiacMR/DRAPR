@@ -5,7 +5,7 @@ import numpy as np
 from scipy import ndimage
 import torch
 
-def calculate_csm_inati_iter_prototype(im):
+def calculate_csm_inati_iter_prototype(im, niter=5):
 
     im = im[:,None]
     ncha = len(im)
@@ -19,35 +19,37 @@ def calculate_csm_inati_iter_prototype(im):
     eps = torch.finfo(im.real.dtype).eps * torch.abs(im).mean()
     eps.to(im)
 
-    R = torch.conj(R)
+    for itr in range(niter):
+        
+        R = torch.conj(R)
 
-    coil_map = im * R[None, ...]
+        coil_map = im * R[None, ...]
 
-    coil_map_conv = coil_map
+        coil_map_conv = coil_map
 
-    D = coil_map_conv * torch.conj(coil_map_conv)
-    R = D.sum(axis=0)
-    R = torch.sqrt(R) + eps
-    R = 1/R
-    coil_map = coil_map_conv * R[np.newaxis, ...]
-    D = im * torch.conj(coil_map)
-    R = D.sum(axis=0)
-    D = coil_map * R[None, ...]
+        D = coil_map_conv * torch.conj(coil_map_conv)
+        R = D.sum(axis=0)
+        R = torch.sqrt(R) + eps
+        R = 1/R
+        coil_map = coil_map_conv * R[np.newaxis, ...]
+        D = im * torch.conj(coil_map)
+        R = D.sum(axis=0)
+        D = coil_map * R[None, ...]
 
-    D_sum = D.sum(axis=(1, 2, 3))
+        D_sum = D.sum(axis=(1, 2, 3))
 
-    v = 1/torch.linalg.norm(D_sum)
-    D_sum *= v
+        v = 1/torch.linalg.norm(D_sum)
+        D_sum *= v
 
-    imT = 0
-    for cha in range(ncha):
-        imT += torch.conj(D_sum[cha]) * coil_map[cha, ...]
+        imT = 0
+        for cha in range(ncha):
+            imT += torch.conj(D_sum[cha]) * coil_map[cha, ...]
 
-    magT = torch.abs(imT) + eps
-    imT /= magT
-    R = R * imT
-    imT = torch.conj(imT)
-    coil_map = coil_map * imT[None, ...]
+        magT = torch.abs(imT) + eps
+        imT /= magT
+        R = R * imT
+        imT = torch.conj(imT)
+        coil_map = coil_map * imT[None, ...]
 
     coil_map = coil_map[:, 0, :, :]
 
